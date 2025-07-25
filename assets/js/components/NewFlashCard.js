@@ -44,7 +44,7 @@ class NewFlashCard extends CardComponent {
                             } / ${this.data.cards.length}</span>
                             <button class="recall-btn" ${
                               !canRecall ? "disabled" : ""
-                            }><i class="fas fa-undo"></i></button>
+                            }><i data-lucide="undo-2"></i></button>
                         </div>
                     </div>
 
@@ -66,13 +66,18 @@ class NewFlashCard extends CardComponent {
 
   renderCard(card, index) {
     const isFavorited = this.favoritedCards.has(card.id);
-    // Pass the text color as a custom property for the favorite button
-    const frontStyle = `style="--card-text-color: ${card.styles.textColor}; background-image: linear-gradient(to bottom right, ${card.styles.gradient[0]}, ${card.styles.gradient[1]}); color: ${card.styles.textColor};"`;
-    const iconClass = `fas fa-${this.getIconName(card.icon)}`;
-    // Use Font Awesome's regular (outline) and solid icons
-    const favoriteIconClass = isFavorited
-      ? "fa-solid fa-heart"
-      : "fa-regular fa-heart";
+    const iconName = this.getIconName(card.icon);
+    const typeIconName = this.getIconName(card.type);
+
+    // --- UPDATED: Access styles from the top-level 'styles' object ---
+    const gradient = card.styles.gradient || ["#FFFFFF", "#E0E0E0"];
+    const textColor = card.styles.textColor || "#111827";
+
+    // Create a single style string for both front and back
+    const cardFaceStyle = `style="background-image: linear-gradient(to bottom right, ${gradient[0]}, ${gradient[1]}); color: ${textColor};"`;
+
+    // Style for the front of the card, also setting the --card-text-color variable
+    const frontStyle = `style="--card-text-color: ${textColor}; background-image: linear-gradient(to bottom right, ${gradient[0]}, ${gradient[1]}); color: ${textColor};"`;
 
     const offset = Math.min(index - this.currentIndex, 2) * 10;
     const scale = 1 - Math.min(index - this.currentIndex, 2) * 0.05;
@@ -86,16 +91,24 @@ class NewFlashCard extends CardComponent {
     }" ${cardStyle}>
                 <div class="new-flashcard-flipper">
                     <div class="new-flashcard-front" ${frontStyle}>
+                        <div class="card-background-icon"><i data-lucide="${iconName}"></i></div>
+                        <div class="card-type-label"><i data-lucide="${typeIconName}"></i><span>${
+      card.type
+    }</span></div>
                         <button class="favorite-btn ${
                           isFavorited ? "favorited" : ""
-                        }"><i class="${favoriteIconClass}"></i></button>
-                        <div class="card-icon"><i class="${iconClass}"></i></div>
-                        <h3>${card.front.title}</h3>
-                        <p>${card.front.description}</p>
+                        }"><i data-lucide="heart"></i></button>
+                        
+                        <div class="card-main-content">
+                            <h3>${card.front.title}</h3>
+                            <p>${card.front.description}</p>
+                        </div>
                     </div>
-                    <div class="new-flashcard-back">
-                         <h3>${card.back.title}</h3>
-                        <p>${card.back.description}</p>
+                    <div class="new-flashcard-back" ${cardFaceStyle}>
+                         <div class="card-main-content">
+                            <h3>${card.back.title}</h3>
+                            <p>${card.back.description}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -154,11 +167,69 @@ class NewFlashCard extends CardComponent {
   }
 
   getIconName(apiIcon) {
-    const iconMap = { Shapes: "shapes", Sparkles: "sparkles", Brain: "brain" };
-    return iconMap[apiIcon] || "star";
+    if (typeof apiIcon !== "string" || !apiIcon) {
+      return "box";
+    }
+    const iconMap = {
+      shapes: "gem",
+      sparkles: "sparkles",
+      brain: "brain",
+      tip: "lightbulb",
+      insight: "brain",
+    };
+    return iconMap[apiIcon.trim().toLowerCase()] || "box";
+  }
+
+  // --- NEW: Add this entire method to your class ---
+  _animateCardEntry() {
+    const componentRoot = document.getElementById(`card-${this.data.id}`);
+    if (!componentRoot) return;
+
+    const cards = componentRoot.querySelectorAll(".new-flashcard-slide");
+    if (!cards.length) return;
+
+    // Instantly set the starting position of the cards (fanned out and invisible)
+    // The final stack position is already set by the inline styles from render()
+    const baseAngle = -10;
+    anime.set(cards, {
+      opacity: 0,
+      translateY: (el, i) => {
+        // Start them lower down
+        return 60;
+      },
+      rotate: (el, i) => {
+        // Fan them out slightly
+        const middle = Math.floor(cards.length / 2);
+        return (i - middle) * baseAngle;
+        // return baseAngle * (i + 1);
+      },
+    });
+
+    // Animate the cards to their final position
+    anime({
+      targets: cards,
+      opacity: 1,
+      rotate: 0, // Straighten the cards
+      // Animate to the final translateY/scale values from the inline style
+      translateY: (el, i) => {
+        const offset = Math.min(i - this.currentIndex, 2) * 10;
+        return offset;
+      },
+      scale: (el, i) => {
+        const scale = 1 - Math.min(i - this.currentIndex, 2) * 0.05;
+        return scale;
+      },
+      // Stagger the animation of each card for a nice flowing effect
+      // delay: (el, i) => i * 100,
+      delay: anime.stagger(100, { easing: "easeOutQuad" }),
+      duration: 800,
+      easing: "easeOutQuint", // A smooth easing function
+    });
   }
 
   attachEventListeners() {
+    this._animateCardEntry();
+
     if (this.currentIndex >= this.data.cards.length) {
       this.attachResultsListeners();
       return;
@@ -169,8 +240,6 @@ class NewFlashCard extends CardComponent {
 
     const cards = componentRoot.querySelectorAll(".new-flashcard-slide");
     const recallBtn = componentRoot.querySelector(".recall-btn");
-    const leftGlow = componentRoot.querySelector(".left-glow");
-    const rightGlow = componentRoot.querySelector(".right-glow");
 
     recallBtn.addEventListener("click", () => this.recallCard());
 
@@ -178,60 +247,61 @@ class NewFlashCard extends CardComponent {
       if (index < this.currentIndex) card.style.display = "none";
 
       if (index === this.currentIndex) {
-        const flipper = card.querySelector(".new-flashcard-flipper");
-        const favoriteBtn = card.querySelector(".favorite-btn");
+        this.attachInteractiveListeners(card);
+      }
+    });
+  }
 
-        flipper.addEventListener("click", (e) => {
-          if (!e.target.closest(".favorite-btn")) {
-            flipper.classList.toggle("flipped");
-          }
-        });
+  attachInteractiveListeners(card) {
+    const componentRoot = document.getElementById(`card-${this.data.id}`);
+    const flipper = card.querySelector(".new-flashcard-flipper");
+    const favoriteBtn = card.querySelector(".favorite-btn");
+    const leftGlow = componentRoot.querySelector(".left-glow");
+    const rightGlow = componentRoot.querySelector(".right-glow");
 
-        favoriteBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const cardId = card.dataset.id;
-          const icon = e.currentTarget.querySelector("i");
-          if (this.favoritedCards.has(cardId)) {
-            this.favoritedCards.delete(cardId);
-            icon.classList.remove("fa-solid");
-            icon.classList.add("fa-regular");
-          } else {
-            this.favoritedCards.add(cardId);
-            icon.classList.remove("fa-regular");
-            icon.classList.add("fa-solid");
-          }
-          e.currentTarget.classList.toggle("favorited");
-        });
+    flipper.addEventListener("click", (e) => {
+      if (!e.target.closest(".favorite-btn")) {
+        flipper.classList.toggle("flipped");
+      }
+    });
 
-        const hammertime = new Hammer(card);
-        hammertime.on("pan", (ev) => {
-          card.classList.add("is-panning");
-          const rotation = ev.deltaX / 20;
-          card.style.transform = `translate(${ev.deltaX}px, ${ev.deltaY}px) rotate(${rotation}deg)`;
+    favoriteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const cardId = card.dataset.id;
+      if (this.favoritedCards.has(cardId)) {
+        this.favoritedCards.delete(cardId);
+      } else {
+        this.favoritedCards.add(cardId);
+      }
+      e.currentTarget.classList.toggle("favorited");
+    });
 
-          rightGlow.style.opacity = Math.max(0, ev.deltaX / 100);
-          leftGlow.style.opacity = Math.max(0, -ev.deltaX / 100);
-        });
+    const hammertime = new Hammer(card);
+    hammertime.on("pan", (ev) => {
+      flipper.classList.add("is-panning");
+      const rotation = ev.deltaX / 20;
+      flipper.style.transform = `translate(${ev.deltaX}px, ${ev.deltaY}px) rotate(${rotation}deg)`;
+      rightGlow.style.opacity = Math.max(0, ev.deltaX / 100);
+      leftGlow.style.opacity = Math.max(0, -ev.deltaX / 100);
+    });
 
-        hammertime.on("panend", (ev) => {
-          card.classList.remove("is-panning");
-          rightGlow.style.opacity = 0;
-          leftGlow.style.opacity = 0;
+    hammertime.on("panend", (ev) => {
+      flipper.classList.remove("is-panning");
+      rightGlow.style.opacity = 0;
+      leftGlow.style.opacity = 0;
 
-          const threshold = 100;
-          if (Math.abs(ev.deltaX) > threshold) {
-            const moveOutWidth = window.innerWidth;
-            const isDone = ev.deltaX > 0;
-            const endX = isDone ? moveOutWidth : -moveOutWidth;
-            card.style.transform = `translate(${endX}px, ${
-              ev.deltaY * 2
-            }px) rotate(${ev.deltaX / 10}deg)`;
+      const threshold = 100;
+      if (Math.abs(ev.deltaX) > threshold) {
+        const moveOutWidth = window.innerWidth;
+        const isDone = ev.deltaX > 0;
+        const endX = isDone ? moveOutWidth : -moveOutWidth;
+        card.style.transform = `translate(${endX}px, ${
+          ev.deltaY * 2
+        }px) rotate(${ev.deltaX / 10}deg)`;
 
-            setTimeout(() => this.nextCard(isDone), 300);
-          } else {
-            card.style.transform = "";
-          }
-        });
+        this.nextCard(isDone); // Call nextCard without timeout
+      } else {
+        flipper.style.transform = "";
       }
     });
   }
@@ -249,7 +319,8 @@ class NewFlashCard extends CardComponent {
     if (closeBtn) {
       closeBtn.addEventListener("click", () => {
         document.getElementById("card-display-area").innerHTML =
-          '<div class="placeholder"><i class="fas fa-hand-point-left"></i><h2>Welcome!</h2><p>Open the menu to select a card.</p></div>';
+          '<div class="placeholder"><i data-lucide="mouse-pointer-click"></i><h2>Welcome!</h2><p>Open the menu to select a card.</p></div>';
+        lucide.createIcons();
       });
     }
 
@@ -258,17 +329,8 @@ class NewFlashCard extends CardComponent {
         ".flashcard-results .progress-bar"
       );
       const finalOffset = progressBar.dataset.offset;
-
-      const tl = anime.timeline({
-        easing: "easeOutExpo",
-        duration: 800,
-      });
-
-      tl.add({
-        targets: ".results-card",
-        scale: [0.8, 1],
-        opacity: [0, 1],
-      })
+      const tl = anime.timeline({ easing: "easeOutExpo", duration: 800 });
+      tl.add({ targets: ".results-card", scale: [0.8, 1], opacity: [0, 1] })
         .add(
           {
             targets: ".results-title, .results-subtitle",
@@ -336,12 +398,73 @@ class NewFlashCard extends CardComponent {
         this.doneCards.delete(cardId);
       }
       this.currentIndex++;
-      this.updateUI();
+
+      // --- THIS IS THE FIX ---
+      // Instead of a full re-render, we animate the next card into place.
+      this.animateNextCard();
     }
+  }
+
+  animateNextCard() {
+    if (this.currentIndex >= this.data.cards.length) {
+      this.updateUI(); // Re-render for results page
+      return;
+    }
+
+    const newTopCard = document.querySelector(
+      `.new-flashcard-slide[data-index="${this.currentIndex}"]`
+    );
+    const cardBelow = document.querySelector(
+      `.new-flashcard-slide[data-index="${this.currentIndex + 1}"]`
+    );
+
+    if (newTopCard) {
+      anime({
+        targets: newTopCard,
+        translateY: "0px",
+        scale: 1,
+        duration: 400,
+        easing: "easeOutQuint",
+        complete: () => {
+          this.attachInteractiveListeners(newTopCard);
+        },
+      });
+    }
+    if (cardBelow) {
+      anime({
+        targets: cardBelow,
+        translateY: "10px",
+        scale: 0.95,
+        duration: 400,
+        easing: "easeOutQuint",
+      });
+    }
+    this.updateHeaderUI();
+  }
+
+  updateHeaderUI() {
+    const counter = document.querySelector(".card-counter");
+    if (counter)
+      counter.textContent = `${this.currentIndex + 1} / ${
+        this.data.cards.length
+      }`;
+
+    const progressSegments = document.querySelectorAll(".progress-segment");
+    progressSegments.forEach((segment, index) => {
+      const card = this.data.cards[index];
+      segment.classList.remove("active", "completed", "not-done");
+      if (this.doneCards.has(card.id)) segment.classList.add("completed");
+      if (this.notDoneCards.has(card.id)) segment.classList.add("not-done");
+      if (index === this.currentIndex) segment.classList.add("active");
+    });
+
+    const recallBtn = document.querySelector(".recall-btn");
+    if (recallBtn) recallBtn.disabled = this.swipeHistory.length === 0;
   }
 
   recallCard() {
     if (this.swipeHistory.length > 0) {
+      // Full re-render is simplest for recall
       const lastAction = this.swipeHistory.pop();
       this.currentIndex--;
 
@@ -360,6 +483,7 @@ class NewFlashCard extends CardComponent {
     if (cardSetElement) {
       const mainAppContainer = document.getElementById("card-display-area");
       mainAppContainer.innerHTML = this.render();
+      lucide.createIcons();
       this.attachEventListeners();
     }
   }

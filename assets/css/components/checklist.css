@@ -13,7 +13,7 @@
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
-.checklist .progress-header-top {
+.progress-header-top {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -21,19 +21,27 @@
   font-size: 0.9rem;
   font-weight: 500;
 }
-.checklist .progress-counter {
+.progress-header-top svg {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+}
+.progress-counter {
   margin-left: auto;
   background-color: rgba(0, 0, 0, 0.2);
   padding: 2px 8px;
   border-radius: 6px;
   font-size: 0.8rem;
 }
-.checklist .reset-btn {
+.reset-btn {
   background: none;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 1rem;
+}
+.reset-btn svg {
+  width: 18px;
+  height: 18px;
 }
 .checklist .progress-bar-bg {
   margin: 12px 0;
@@ -42,7 +50,7 @@
 .checklist .progress-bar-fg {
   background-color: var(--accent-primary);
 }
-.checklist .progress-header-bottom {
+.progress-header-bottom {
   display: flex;
   justify-content: space-between;
   font-size: 0.8rem;
@@ -82,10 +90,16 @@
   transition: all 0.2s;
   margin-top: 2px;
 }
+/* --- NEW: Style for the Lucide check icon --- */
+.custom-checkbox svg {
+  width: 16px;
+  height: 16px;
+  color: white;
+  stroke-width: 3;
+}
 .checklist-item.completed .custom-checkbox {
   background-color: var(--accent-success);
   border-color: var(--accent-success);
-  color: white;
 }
 .checklist-item label {
   flex-grow: 1;

@@ -29,23 +29,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. Load and display initial notifications
   const notifications = ApiService.getNotifications();
   notificationService.renderNotifications(notifications);
+  lucide.createIcons(); // Initial call for icons in the panel
 
-  // 2. Handle notification clicks (NOW ASYNC)
+  // 2. Handle notification clicks (ASYNC)
   notificationService.listElement.addEventListener("click", async (e) => {
     const li = e.target.closest("li");
     if (li) {
       const actionId = li.dataset.actionId;
 
-      // --- NEW: Show loading state ---
       cardDisplayArea.innerHTML = `<div class="placeholder"><h2>Loading...</h2></div>`;
       markNotificationAsActive(li);
       if (window.innerWidth < 768) {
         toggleNotificationPanel();
       }
 
-      // --- NEW: Fetch data asynchronously ---
       const cardData = await ApiService.fetchCardData(actionId);
-      console.log(cardData)
+
       if (cardData) {
         displayCard(cardData);
       } else {
@@ -58,9 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function displayCard(data) {
     let cardComponent;
 
-    // The 'type' now comes from the API or mock data
     switch (data.type) {
-      case "flashcards": // Note the 's' for the set
+      case "flashcards":
         cardComponent = new FlashCard(data);
         break;
       case "new-flashcards":
@@ -80,6 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     cardDisplayArea.innerHTML = cardComponent.render();
     cardComponent.attachEventListeners();
+    // --- NEW: Call Lucide to render icons after new content is added ---
+    lucide.createIcons();
   }
 
   // 4. Mark notification as active

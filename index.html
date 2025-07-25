@@ -8,12 +8,8 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json" />
 
-    <!-- Styles and Icons -->
+    <!-- Styles -->
     <link rel="stylesheet" href="assets/css/main.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    />
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -23,9 +19,11 @@
       rel="stylesheet"
     />
 
-    <!-- Animation Libraries -->
+    <!-- NEW: Lucide Icons Library -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Animation & Gesture Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <!-- NEW: Hammer.js for Touch Gestures -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 
     <link
@@ -37,15 +35,15 @@
     <div class="app-shell">
       <!-- Floating Menu Button -->
       <button id="menu-btn" class="floating-menu-btn">
-        <i class="fas fa-bars"></i>
+        <i data-lucide="menu"></i>
       </button>
 
-      <!-- Slide-in Notification Panel (Hidden by default) -->
+      <!-- Slide-in Notification Panel -->
       <aside id="notification-panel" class="notification-panel">
         <div class="notification-header">
-          <h2><i class="fas fa-bell"></i> Notifications</h2>
+          <h2><i data-lucide="bell"></i> Notifications</h2>
           <button id="close-notifications-btn" class="icon-btn">
-            <i class="fas fa-times"></i>
+            <i data-lucide="x"></i>
           </button>
         </div>
         <ul id="notification-list">
@@ -57,8 +55,8 @@
       <!-- Main App Content -->
       <main id="card-display-area" class="card-display-area">
         <div class="placeholder">
-          <i class="fas fa-hand-point-left"></i>
-          <h2>Connected to Git?</h2>
+          <i data-lucide="mouse-pointer-click"></i>
+          <h2>Welcome!</h2>
           <p>Open the menu to select a card.</p>
         </div>
       </main>
@@ -67,16 +65,20 @@
     <!-- Component Scripts -->
     <script src="assets/js/components/CardComponent.js"></script>
     <script src="assets/js/components/FlashCard.js"></script>
-    <script src="assets/js/components/NewFlashCard.js"></script>
     <script src="assets/js/components/Checklist.js"></script>
     <script src="assets/js/components/Quiz.js"></script>
+    <script src="assets/js/components/NewFlashCard.js"></script>
 
     <!-- Services -->
-    <!-- <script src="assets/js/services/MockData.js"></script> -->
     <script src="assets/js/services/ApiService.js"></script>
     <script src="assets/js/services/NotificationService.js"></script>
 
     <!-- Main App Logic -->
     <script src="assets/js/main.js"></script>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+      lucide.createIcons();
+    </script>
   </body>
 </html>

@@ -1,7 +1,6 @@
 class Checklist extends CardComponent {
   constructor(data) {
     super(data);
-    // Initialize the state of completed items
     this.completedItems = new Set(
       data.items.filter((item) => item.completed).map((item) => item.id)
     );
@@ -18,13 +17,12 @@ class Checklist extends CardComponent {
                     <h2 class="card-title">${this.data.title}</h2>
                     <p class="card-subtitle">${this.data.subtitle}</p>
 
-                    <!-- New Progress Header -->
                     <div class="checklist-progress-header">
                         <div class="progress-header-top">
-                            <i class="fas fa-book-open"></i>
+                            <i data-lucide="book-open"></i>
                             <span>Development Progress</span>
                             <span class="progress-counter">${completedCount}/${totalItems}</span>
-                            <button class="reset-btn"><i class="fas fa-sync-alt"></i></button>
+                            <button class="reset-btn"><i data-lucide="rotate-cw"></i></button>
                         </div>
                         <div class="progress-bar-bg">
                             <div class="progress-bar-fg" style="width: ${progress}%"></div>
@@ -35,7 +33,6 @@ class Checklist extends CardComponent {
                         </div>
                     </div>
 
-                    <!-- Redesigned Checklist -->
                     <ul class="checklist-list">
                         ${this.data.items
                           .map((item) => this.renderListItem(item))
@@ -48,12 +45,14 @@ class Checklist extends CardComponent {
 
   renderListItem(item) {
     const isCompleted = this.completedItems.has(item.id);
+    // --- NEW: Use Lucide icon for the checkmark ---
+    const checkIcon = isCompleted ? '<i data-lucide="check"></i>' : "";
     return `
             <li class="checklist-item ${
               isCompleted ? "completed" : ""
             }" data-item-id="${item.id}">
                 <div class="custom-checkbox">
-                    ${isCompleted ? '<i class="fas fa-check"></i>' : ""}
+                    ${checkIcon}
                 </div>
                 <label>${item.text}</label>
                 ${
@@ -69,7 +68,6 @@ class Checklist extends CardComponent {
     const componentRoot = document.getElementById(`card-${this.data.id}`);
     if (!componentRoot) return;
 
-    // Handle item clicks
     componentRoot.querySelectorAll(".checklist-item").forEach((item) => {
       item.addEventListener("click", () => {
         const itemId = item.dataset.itemId;
@@ -82,9 +80,8 @@ class Checklist extends CardComponent {
       });
     });
 
-    // Handle reset button click
     componentRoot.querySelector(".reset-btn").addEventListener("click", (e) => {
-      e.stopPropagation(); // Prevent item click from firing
+      e.stopPropagation();
       this.completedItems.clear();
       this.updateUI();
     });
@@ -95,6 +92,8 @@ class Checklist extends CardComponent {
     if (cardSetElement) {
       const mainAppContainer = document.getElementById("card-display-area");
       mainAppContainer.innerHTML = this.render();
+      // --- NEW: Re-render icons after UI update ---
+      lucide.createIcons();
       this.attachEventListeners();
     }
   }

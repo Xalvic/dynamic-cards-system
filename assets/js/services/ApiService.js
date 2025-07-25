@@ -68,6 +68,7 @@ const ApiService = {
             card.content,
         },
         icon: card.icon, // Pass the icon name
+        type: card.type, // Pass the icon name
         styles: {
           gradient: card["background-gradient-color"],
           textColor: card["text-color"],
