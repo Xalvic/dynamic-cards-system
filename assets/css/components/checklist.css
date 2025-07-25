@@ -1,0 +1,115 @@
+/* --- CHECKLIST STYLES --- */
+.checklist .card-content {
+  padding: 70px 20px 20px 20px;
+}
+.checklist-progress-header {
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 25px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(26, 26, 46, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.checklist .progress-header-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.checklist .progress-counter {
+  margin-left: auto;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+.checklist .reset-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1rem;
+}
+.checklist .progress-bar-bg {
+  margin: 12px 0;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+.checklist .progress-bar-fg {
+  background-color: var(--accent-primary);
+}
+.checklist .progress-header-bottom {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.checklist-list {
+  list-style: none;
+}
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 20px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(26, 26, 46, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+.checklist-item.completed {
+  border-color: rgba(45, 206, 137, 0.5);
+}
+.custom-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--text-secondary);
+  border-radius: 50%;
+  margin-right: 15px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+  margin-top: 2px;
+}
+.checklist-item.completed .custom-checkbox {
+  background-color: var(--accent-success);
+  border-color: var(--accent-success);
+  color: white;
+}
+.checklist-item label {
+  flex-grow: 1;
+  padding-right: 50px;
+}
+.checklist-item.completed label {
+  text-decoration: none;
+  color: var(--text-secondary);
+}
+.complete-chip {
+  position: absolute;
+  bottom: 15px;
+  right: 20px;
+  background-color: rgba(45, 206, 137, 0.15);
+  color: var(--accent-success);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.checklist-item.completed .complete-chip {
+  opacity: 1;
+  transform: translateY(0);
+}

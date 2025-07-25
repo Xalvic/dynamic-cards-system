@@ -1,0 +1,14 @@
+/*
+  MAIN STYLESHEET
+  This file acts as the central hub for importing all other CSS files.
+  The order of imports is important.
+*/
+
+/* 1. Base styles, variables, and global layout */
+@import url("./base.css");
+
+/* 2. Component-specific styles */
+@import url("./components/notifications.css");
+@import url("./components/quiz.css");
+@import url("./components/flashcard.css");
+@import url("./components/checklist.css");

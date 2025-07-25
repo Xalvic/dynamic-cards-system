@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamic Card System</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- Styles and Icons -->
+    <link rel="stylesheet" href="assets/css/main.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <!-- NEW: Google Fonts Link -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="apple-touch-icon"
+      href="https://placehold.co/192x192/5e72e4/ffffff?text=Cards"
+    />
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- Floating Menu Button -->
+      <button id="menu-btn" class="floating-menu-btn">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <!-- Slide-in Notification Panel (Hidden by default) -->
+      <aside id="notification-panel" class="notification-panel">
+        <div class="notification-header">
+          <h2><i class="fas fa-bell"></i> Notifications</h2>
+          <button id="close-notifications-btn" class="icon-btn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <ul id="notification-list">
+          <!-- Notifications will be dynamically inserted here -->
+        </ul>
+      </aside>
+      <div class="overlay" id="overlay"></div>
+
+      <!-- Main App Content -->
+      <main id="card-display-area" class="card-display-area">
+        <div class="placeholder">
+          <i class="fas fa-hand-point-left"></i>
+          <h2>Connected to Git?</h2>
+          <p>Open the menu to select a card.</p>
+        </div>
+      </main>
+    </div>
+
+    <!-- Component Scripts -->
+    <script src="assets/js/components/CardComponent.js"></script>
+    <script src="assets/js/components/FlashCard.js"></script>
+    <script src="assets/js/components/Checklist.js"></script>
+    <script src="assets/js/components/Quiz.js"></script>
+
+    <!-- Services -->
+    <script src="assets/js/services/MockData.js"></script>
+    <script src="assets/js/services/NotificationService.js"></script>
+
+    <!-- Main App Logic -->
+    <script src="assets/js/main.js"></script>
+  </body>
+</html>

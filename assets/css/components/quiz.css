@@ -1,0 +1,272 @@
+/* --- QUIZ-SPECIFIC STYLES --- */
+.quiz .card-content {
+  padding: 0;
+}
+.quiz-main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.quiz-header {
+  padding: 20px 20px 10px 20px;
+}
+.quiz-progress-bar {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+}
+.progress-segment {
+  flex-grow: 1;
+  background-color: var(--primary-surface-color);
+  border-radius: 2px;
+}
+.progress-segment.filled {
+  background-color: var(--accent-primary);
+}
+.progress-segment.active {
+  background-color: var(--text-primary);
+}
+.quiz-score {
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+.quiz-question-area {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  text-align: center;
+  position: relative; /* For the noise overlay */
+  overflow: hidden; /* Contain the pseudo-element */
+  background-color: hsla(0, 100%, 50%, 1);
+  background-image: radial-gradient(
+      at 28% 17%,
+      hsla(28, 100%, 74%, 1) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(355, 100%, 93%, 1) 0px, transparent 50%),
+    radial-gradient(at 82% 41%, hsla(340, 100%, 76%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(22, 100%, 77%, 1) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, hsla(242, 100%, 70%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, hsla(343, 100%, 76%, 1) 0px, transparent 50%);
+}
+/* NEW: Noise overlay for the gradient area */
+.quiz-question-area::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+  opacity: 0.2;
+  pointer-events: none;
+}
+.quiz-question {
+  line-height: 1.2;
+  font-size: 2.8rem; /* Slightly larger */
+  font-weight: 700;
+  color: white;
+  font-family: "PT Serif", serif;
+  position: relative; /* To sit above the noise overlay */
+  z-index: 1;
+}
+.quiz-question .word {
+  display: inline-block;
+  opacity: 0;
+  animation: fadeInWord 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  margin-right: 0.5rem;
+}
+.quiz-question.no-animation .word {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+@keyframes fadeInWord {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.quiz-options-area {
+  padding: 20px;
+  background-color: var(--bg-color);
+}
+.quiz-options button {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background-color: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+}
+.quiz-options button:hover:not(:disabled) {
+  background-color: var(--primary-surface-color);
+  border-color: var(--accent-primary);
+}
+.quiz-options button.selected.correct {
+  background: var(--accent-success) !important;
+  border-color: var(--accent-success) !important;
+  color: white;
+  font-weight: 600;
+}
+.quiz-options button.selected.incorrect {
+  background: var(--accent-secondary) !important;
+  border-color: var(--accent-secondary) !important;
+  color: white;
+  font-weight: 600;
+}
+.quiz-options button.correct-answer {
+  box-shadow: 0 0 10px var(--accent-success);
+}
+.quiz-footer {
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+.quiz-nav-btn {
+  padding: 12px 25px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.quiz-nav-btn:disabled {
+  background-color: var(--primary-surface-color);
+  color: var(--text-secondary);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.quiz-results {
+  position: relative;
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background-image: radial-gradient(
+      at 28% 17%,
+      hsla(28, 100%, 74%, 1) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(355, 100%, 93%, 1) 0px, transparent 50%),
+    radial-gradient(at 82% 41%, hsla(340, 100%, 76%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(22, 100%, 77%, 1) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, hsla(242, 100%, 70%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, hsla(343, 100%, 76%, 1) 0px, transparent 50%);
+  background-size: cover;
+}
+.quiz-results::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(8, 8, 24, 0.6);
+  z-index: 1;
+}
+.results-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 350px;
+  padding: 30px;
+  text-align: center;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+body.light-theme .quiz-results::before {
+  background-color: rgba(244, 247, 246, 0.5);
+}
+body.light-theme .results-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+.results-card h3 {
+  font-size: 1.8rem;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  margin-bottom: 20px;
+}
+body.light-theme .results-card h3 {
+  color: var(--text-primary);
+}
+.circular-progress {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 20px auto;
+}
+.circular-progress svg {
+  transform: rotate(-90deg);
+}
+.progress-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 10;
+}
+.progress-bar {
+  fill: none;
+  stroke: var(--accent-success);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s ease-out;
+}
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.progress-percentage {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: white;
+}
+.progress-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: -5px;
+}
+body.light-theme .progress-percentage,
+body.light-theme .progress-label {
+  color: var(--text-primary);
+}
+.try-again-btn {
+  width: 100%;
+  padding: 15px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: transform 0.2s;
+}
+.try-again-btn:hover {
+  transform: scale(1.03);
+}
