@@ -78,18 +78,18 @@ const ApiService = {
 
   getNotifications() {
     return [
-      {
-        id: "notif1",
-        type: "quiz",
-        title: "Quiz: Deep Work Principles",
-        actionId: "deepWorkQuiz",
-      },
-      {
-        id: "notif_api",
-        type: "flashcards",
-        title: "Flashcards: Drawing Tips (Grid)",
-        actionId: "drawingFlashcards",
-      },
+      // {
+      //   id: "notif1",
+      //   type: "quiz",
+      //   title: "Quiz: Deep Work Principles",
+      //   actionId: "deepWorkQuiz",
+      // },
+      // {
+      //   id: "notif_api",
+      //   type: "flashcards",
+      //   title: "Flashcards: Drawing Tips (Grid)",
+      //   actionId: "drawingFlashcards",
+      // },
       {
         id: "notif_new_api",
         type: "new-flashcards",
