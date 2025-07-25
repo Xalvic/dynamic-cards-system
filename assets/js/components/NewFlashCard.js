@@ -1,7 +1,7 @@
 class NewFlashCard extends CardComponent {
   constructor(data) {
     super(data);
-    this.data = data; // Store original data
+    this.data = data;
     this.resetState();
   }
 
@@ -14,8 +14,6 @@ class NewFlashCard extends CardComponent {
   }
 
   render() {
-    // --- THIS IS THE FIX for the results page ---
-    // If all cards have been swiped, show the results screen
     if (this.currentIndex >= this.data.cards.length) {
       return this.renderResults();
     }
@@ -33,7 +31,7 @@ class NewFlashCard extends CardComponent {
                                 if (this.doneCards.has(card.id))
                                   status = "completed";
                                 if (this.notDoneCards.has(card.id))
-                                  status = "not-done"; // New status
+                                  status = "not-done";
                                 if (index === this.currentIndex)
                                   status += " active";
                                 return `<div class="progress-segment ${status}"></div>`;
@@ -68,8 +66,13 @@ class NewFlashCard extends CardComponent {
 
   renderCard(card, index) {
     const isFavorited = this.favoritedCards.has(card.id);
-    const frontStyle = `style="background-image: linear-gradient(to bottom right, ${card.styles.gradient[0]}, ${card.styles.gradient[1]}); color: ${card.styles.textColor};"`;
+    // Pass the text color as a custom property for the favorite button
+    const frontStyle = `style="--card-text-color: ${card.styles.textColor}; background-image: linear-gradient(to bottom right, ${card.styles.gradient[0]}, ${card.styles.gradient[1]}); color: ${card.styles.textColor};"`;
     const iconClass = `fas fa-${this.getIconName(card.icon)}`;
+    // Use Font Awesome's regular (outline) and solid icons
+    const favoriteIconClass = isFavorited
+      ? "fa-solid fa-heart"
+      : "fa-regular fa-heart";
 
     const offset = Math.min(index - this.currentIndex, 2) * 10;
     const scale = 1 - Math.min(index - this.currentIndex, 2) * 0.05;
@@ -85,11 +88,10 @@ class NewFlashCard extends CardComponent {
                     <div class="new-flashcard-front" ${frontStyle}>
                         <button class="favorite-btn ${
                           isFavorited ? "favorited" : ""
-                        }"><i class="fas fa-star"></i></button>
+                        }"><i class="${favoriteIconClass}"></i></button>
                         <div class="card-icon"><i class="${iconClass}"></i></div>
                         <h3>${card.front.title}</h3>
                         <p>${card.front.description}</p>
-                        <div class="card-hint">Tap to flip</div>
                     </div>
                     <div class="new-flashcard-back">
                          <h3>${card.back.title}</h3>
@@ -114,24 +116,37 @@ class NewFlashCard extends CardComponent {
             <div class="card new-flashcard-set" id="card-${this.data.id}">
                 <div class="flashcard-results">
                     <div class="results-card">
-                        <h3>Deck Complete!</h3>
-                        <div class="circular-progress">
-                            <svg width="150" height="150" viewBox="0 0 150 150">
-                                <circle class="progress-bg" cx="75" cy="75" r="${radius}"></circle>
-                                <circle class="progress-bar" cx="75" cy="75" r="${radius}"
-                                    style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};">
-                                </circle>
+                        <div class="results-deco-svg">
+                            <svg width="100" height="100" viewBox="0 0 100 100">
+                                <circle class="deco-circle" cx="20" cy="20" r="15"/>
+                                <rect class="deco-rect" x="60" y="60" width="30" height="30"/>
                             </svg>
-                            <div class="progress-text">
-                                <div class="progress-percentage">${accuracy}%</div>
-                                <div class="progress-label">Completed</div>
+                        </div>
+                        <h3 class="results-title">You're doing great!</h3>
+                        <p class="results-subtitle">Keep focusing on the tough terms.</p>
+                        
+                        <div class="results-progress-container">
+                            <div class="circular-progress">
+                                <svg width="150" height="150" viewBox="0 0 150 150">
+                                    <circle class="progress-bg" cx="75" cy="75" r="${radius}"></circle>
+                                    <circle class="progress-bar" cx="75" cy="75" r="${radius}"
+                                        stroke-dasharray="${circumference}" stroke-dashoffset="${circumference}" data-offset="${offset}">
+                                    </circle>
+                                </svg>
+                                <div class="progress-text">
+                                    <div class="progress-percentage">${accuracy}%</div>
+                                </div>
+                            </div>
+                            <div class="results-summary">
+                                <div class="summary-chip done">Know <span>${doneCount}</span></div>
+                                <div class="summary-chip not-done">Still learning <span>${notDoneCount}</span></div>
                             </div>
                         </div>
-                        <div class="results-summary">
-                            <div class="summary-chip done">${doneCount} Done</div>
-                            <div class="summary-chip not-done">${notDoneCount} Not Done</div>
+
+                        <div class="results-actions">
+                            <button class="restart-btn primary">Restart Deck</button>
+                            <button class="close-btn secondary">Close</button>
                         </div>
-                        <button class="restart-btn">Restart Deck</button>
                     </div>
                 </div>
             </div>
@@ -144,15 +159,8 @@ class NewFlashCard extends CardComponent {
   }
 
   attachEventListeners() {
-    // If we are on the results page, only attach the restart listener
     if (this.currentIndex >= this.data.cards.length) {
-      const restartBtn = document.querySelector(".restart-btn");
-      if (restartBtn) {
-        restartBtn.addEventListener("click", () => {
-          this.resetState();
-          this.updateUI();
-        });
-      }
+      this.attachResultsListeners();
       return;
     }
 
@@ -182,10 +190,15 @@ class NewFlashCard extends CardComponent {
         favoriteBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           const cardId = card.dataset.id;
+          const icon = e.currentTarget.querySelector("i");
           if (this.favoritedCards.has(cardId)) {
             this.favoritedCards.delete(cardId);
+            icon.classList.remove("fa-solid");
+            icon.classList.add("fa-regular");
           } else {
             this.favoritedCards.add(cardId);
+            icon.classList.remove("fa-regular");
+            icon.classList.add("fa-solid");
           }
           e.currentTarget.classList.toggle("favorited");
         });
@@ -221,6 +234,89 @@ class NewFlashCard extends CardComponent {
         });
       }
     });
+  }
+
+  attachResultsListeners() {
+    const restartBtn = document.querySelector(".restart-btn");
+    const closeBtn = document.querySelector(".close-btn");
+
+    if (restartBtn) {
+      restartBtn.addEventListener("click", () => {
+        this.resetState();
+        this.updateUI();
+      });
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        document.getElementById("card-display-area").innerHTML =
+          '<div class="placeholder"><i class="fas fa-hand-point-left"></i><h2>Welcome!</h2><p>Open the menu to select a card.</p></div>';
+      });
+    }
+
+    if (window.anime) {
+      const progressBar = document.querySelector(
+        ".flashcard-results .progress-bar"
+      );
+      const finalOffset = progressBar.dataset.offset;
+
+      const tl = anime.timeline({
+        easing: "easeOutExpo",
+        duration: 800,
+      });
+
+      tl.add({
+        targets: ".results-card",
+        scale: [0.8, 1],
+        opacity: [0, 1],
+      })
+        .add(
+          {
+            targets: ".results-title, .results-subtitle",
+            translateY: [20, 0],
+            opacity: [0, 1],
+            delay: anime.stagger(100),
+          },
+          "-=600"
+        )
+        .add(
+          {
+            targets: progressBar,
+            strokeDashoffset: [anime.setDashoffset, finalOffset],
+            duration: 1200,
+          },
+          "-=500"
+        )
+        .add(
+          {
+            targets: ".results-summary .summary-chip, .results-actions button",
+            translateY: [20, 0],
+            opacity: [0, 1],
+            delay: anime.stagger(100),
+          },
+          "-=800"
+        )
+        .add(
+          {
+            targets: ".results-deco-svg .deco-circle",
+            translateX: [-20, 0],
+            translateY: [-20, 0],
+            opacity: [0, 1],
+            duration: 600,
+          },
+          "-=1000"
+        )
+        .add(
+          {
+            targets: ".results-deco-svg .deco-rect",
+            translateX: [20, 0],
+            translateY: [20, 0],
+            opacity: [0, 1],
+            rotate: [-45, 0],
+            duration: 600,
+          },
+          "-=900"
+        );
+    }
   }
 
   nextCard(isDone) {
