@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const overlay = document.getElementById("overlay");
   const notificationService = new NotificationService("notification-list");
+  const initialPlaceholder = cardDisplayArea.innerHTML;
 
   // --- EVENT LISTENERS ---
   menuBtn.addEventListener("click", toggleNotificationPanel);
@@ -26,19 +27,29 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 1. Load and display initial notifications
-  const notifications = MockData.getNotifications();
+  const notifications = ApiService.getNotifications();
   notificationService.renderNotifications(notifications);
 
-  // 2. Handle notification clicks
-  notificationService.listElement.addEventListener("click", (e) => {
+  // 2. Handle notification clicks (NOW ASYNC)
+  notificationService.listElement.addEventListener("click", async (e) => {
     const li = e.target.closest("li");
     if (li) {
       const actionId = li.dataset.actionId;
-      const cardData = MockData.getCardData(actionId);
+
+      // --- NEW: Show loading state ---
+      cardDisplayArea.innerHTML = `<div class="placeholder"><h2>Loading...</h2></div>`;
+      markNotificationAsActive(li);
+      if (window.innerWidth < 768) {
+        toggleNotificationPanel();
+      }
+
+      // --- NEW: Fetch data asynchronously ---
+      const cardData = await ApiService.fetchCardData(actionId);
+
       if (cardData) {
         displayCard(cardData);
-        markNotificationAsActive(li);
-        toggleNotificationPanel(); // Close panel after selection
+      } else {
+        cardDisplayArea.innerHTML = `<div class="placeholder"><h2>Error</h2><p>Could not load card data.</p></div>`;
       }
     }
   });
@@ -46,8 +57,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. Display the selected card content
   function displayCard(data) {
     let cardComponent;
+
+    // The 'type' now comes from the API or mock data
     switch (data.type) {
-      case "flashcards":
+      case "flashcards": // Note the 's' for the set
         cardComponent = new FlashCard(data);
         break;
       case "checklist":
@@ -61,15 +74,16 @@ document.addEventListener("DOMContentLoaded", () => {
           '<div class="placeholder"><h2>Error</h2><p>Unsupported card type.</p></div>';
         return;
     }
+
     cardDisplayArea.innerHTML = cardComponent.render();
     cardComponent.attachEventListeners();
   }
 
   // 4. Mark notification as active
   function markNotificationAsActive(notificationElement) {
-    notificationService.listElement
-      .querySelectorAll("li")
-      .forEach((item) => item.classList.remove("active"));
+    notificationService.listElement.querySelectorAll("li").forEach((item) => {
+      item.classList.remove("active");
+    });
     notificationElement.classList.add("active");
   }
 });

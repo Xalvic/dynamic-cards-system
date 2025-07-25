@@ -49,16 +49,29 @@ class FlashCard extends CardComponent {
 
   renderGridItem(card, index) {
     const isCompleted = this.completedCards.has(card.id);
+
+    // --- NEW: Apply dynamic styles from the API ---
+    const style = card.styles
+      ? `style="background-image: linear-gradient(to bottom right, ${card.styles.gradient[0]}, ${card.styles.gradient[1]}); color: ${card.styles.textColor};"`
+      : "";
+    const headerStyle = card.styles
+      ? `style="color: ${card.styles.textColor}; opacity: 0.7;"`
+      : "";
+    // For API cards with light backgrounds, we need a darker border
+    const footerStyle = card.styles
+      ? `style="color: ${card.styles.textColor}; border-top-color: rgba(0,0,0,0.1);"`
+      : "";
+
     return `
             <div class="flashcard-grid-item ${
               isCompleted ? "completed" : ""
-            }" data-index="${index}">
-                <div class="grid-item-header">
+            }" data-index="${index}" ${style}>
+                <div class="grid-item-header" ${headerStyle}>
                     <i class="fas fa-shield-halved"></i>
                     <span>${card.step}</span>
                 </div>
                 <h3>${card.front.title}</h3>
-                <div class="grid-item-footer">
+                <div class="grid-item-footer" ${footerStyle}>
                     <i class="fas fa-lightbulb"></i>
                     <span>Tap to open</span>
                 </div>
@@ -69,11 +82,23 @@ class FlashCard extends CardComponent {
   renderModalContent(index) {
     const card = this.data.cards[index];
     const isCompleted = this.completedCards.has(card.id);
+
+    // --- NEW: Apply dynamic styles to the modal view as well ---
+    const frontStyle = card.styles
+      ? `style="background-image: linear-gradient(to bottom right, ${card.styles.gradient[0]}, ${card.styles.gradient[1]}); color: ${card.styles.textColor};"`
+      : "";
+    const headerInfoStyle = card.styles
+      ? `style="color: ${card.styles.textColor}; opacity: 0.8;"`
+      : "";
+    const hintStyle = card.styles
+      ? `style="color: ${card.styles.textColor};"`
+      : "";
+
     return `
             <div class="flashcard-modal-content">
                 <div class="flashcard-flipper">
-                    <div class="flashcard-front">
-                        <div class="card-header-info">
+                    <div class="flashcard-front" ${frontStyle}>
+                        <div class="card-header-info" ${headerInfoStyle}>
                             <span>${card.step}</span>
                             <span><i class="far fa-clock"></i> ${
                               card.duration
@@ -81,10 +106,12 @@ class FlashCard extends CardComponent {
                         </div>
                         <h3>${card.front.title}</h3>
                         <p>${card.front.description}</p>
-                        <div class="card-footer-hint">${card.front.hint}</div>
+                        <div class="card-footer-hint" ${hintStyle}>${
+      card.front.hint
+    }</div>
                     </div>
                     <div class="flashcard-back">
-                         <!-- <div class="card-header-info"><span>Action Step</span></div> -->
+                         <div class="card-header-info"><span>Action Step</span></div>
                         <h3>${card.back.title}</h3>
                         <p>${card.back.description}</p>
                         <button class="complete-action-btn" data-id="${
@@ -154,9 +181,6 @@ class FlashCard extends CardComponent {
     const modalContent = modalOverlay.querySelector(".flashcard-modal-content");
     modalContent.classList.remove("animate-in");
 
-    // --- THIS IS THE FIX ---
-    // Use a reliable setTimeout matching the CSS transition duration (400ms)
-    // to clean up the animation state.
     setTimeout(() => {
       modalOverlay.style.display = "none";
       modalOverlay.innerHTML = "";
@@ -176,8 +200,6 @@ class FlashCard extends CardComponent {
       const btn = e.target.closest(".complete-action-btn");
       if (btn && !btn.disabled) {
         this.completedCards.add(btn.dataset.id);
-        // No need to call updateUI here, just close the card.
-        // The main view will be correct when it's next rendered.
         handleClose();
       }
     };
@@ -201,13 +223,9 @@ class FlashCard extends CardComponent {
 
     modalOverlay.addEventListener("click", clickHandler);
 
-    // A small change to the close logic to re-render the UI after closing
-    // This ensures the progress bars and stats are always up to date.
     const originalCloseCard = this.closeCard;
     this.closeCard = (overlay, gridEl) => {
       originalCloseCard(overlay, gridEl);
-      // After the animation is done, re-render the whole component
-      // to ensure the grid item shows its 'completed' state correctly.
       setTimeout(() => this.updateUI(), 410);
     };
   }

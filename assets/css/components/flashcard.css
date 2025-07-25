@@ -34,6 +34,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
   flex-grow: 1;
+  margin-bottom: 8rem;
 }
 .flashcard-grid-item {
   background-color: var(--primary-surface-color);
