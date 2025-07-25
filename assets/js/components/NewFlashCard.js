@@ -25,18 +25,9 @@ class NewFlashCard extends CardComponent {
                 <div class="card-content">
                     <div class="new-flashcard-header">
                         <div class="progress-bar-container">
-                            ${this.data.cards
-                              .map((card, index) => {
-                                let status = "";
-                                if (this.doneCards.has(card.id))
-                                  status = "completed";
-                                if (this.notDoneCards.has(card.id))
-                                  status = "not-done";
-                                if (index === this.currentIndex)
-                                  status += " active";
-                                return `<div class="progress-segment ${status}"></div>`;
-                              })
-                              .join("")}
+                            <div class="progress-bar-unified">
+                                <div class="progress-bar-unified-fill"></div>
+                            </div>
                         </div>
                         <div class="header-controls">
                             <span class="card-counter">${
@@ -69,14 +60,10 @@ class NewFlashCard extends CardComponent {
     const iconName = this.getIconName(card.icon);
     const typeIconName = this.getIconName(card.type);
 
-    // --- UPDATED: Access styles from the top-level 'styles' object ---
     const gradient = card.styles.gradient || ["#FFFFFF", "#E0E0E0"];
     const textColor = card.styles.textColor || "#111827";
 
-    // Create a single style string for both front and back
     const cardFaceStyle = `style="background-image: linear-gradient(to bottom right, ${gradient[0]}, ${gradient[1]}); color: ${textColor};"`;
-
-    // Style for the front of the card, also setting the --card-text-color variable
     const frontStyle = `style="--card-text-color: ${textColor}; background-image: linear-gradient(to bottom right, ${gradient[0]}, ${gradient[1]}); color: ${textColor};"`;
 
     const offset = Math.min(index - this.currentIndex, 2) * 10;
@@ -86,33 +73,38 @@ class NewFlashCard extends CardComponent {
     }; transform: translateY(${offset}px) scale(${scale});"`;
 
     return `
-            <div class="new-flashcard-slide" data-index="${index}" data-id="${
+      <div class="new-flashcard-slide" data-index="${index}" data-id="${
       card.id
     }" ${cardStyle}>
-                <div class="new-flashcard-flipper">
-                    <div class="new-flashcard-front" ${frontStyle}>
-                        <div class="card-background-icon"><i data-lucide="${iconName}"></i></div>
-                        <div class="card-type-label"><i data-lucide="${typeIconName}"></i><span>${
+          <div class="new-flashcard-flipper">
+              <div class="new-flashcard-front" ${frontStyle}>
+                  <div class="card-background-icon"><i data-lucide="${iconName}"></i></div>
+                  <div class="card-type-label"><i data-lucide="${typeIconName}"></i><span>${
       card.type
     }</span></div>
-                        <button class="favorite-btn ${
-                          isFavorited ? "favorited" : ""
-                        }"><i data-lucide="heart"></i></button>
-                        
-                        <div class="card-main-content">
-                            <h3>${card.front.title}</h3>
-                            <p>${card.front.description}</p>
-                        </div>
-                    </div>
-                    <div class="new-flashcard-back" ${cardFaceStyle}>
-                         <div class="card-main-content">
-                            <h3>${card.back.title}</h3>
-                            <p>${card.back.description}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+                  
+                  <div class="card-main-content">
+                      <h3>${card.front.title}</h3>
+                      <p>${card.front.description}</p>
+                  </div>
+                  <button class="tts-btn"><i data-lucide="volume-2"></i></button>
+                  <button class="favorite-btn ${
+                    isFavorited ? "favorited" : ""
+                  }"><i data-lucide="heart"></i></button>
+              </div>
+              <div class="new-flashcard-back" ${cardFaceStyle}>
+                  <div class="card-main-content">
+                      <h3>${card.back.title}</h3>
+                      <p>${card.back.description}</p>
+                  </div>
+                  <button class="tts-btn"><i data-lucide="volume-2"></i></button>
+                  <button class="favorite-btn ${
+                    isFavorited ? "favorited" : ""
+                  }"><i data-lucide="heart"></i></button>
+              </div>
+          </div>
+      </div>
+    `;
   }
 
   renderResults() {
@@ -164,6 +156,16 @@ class NewFlashCard extends CardComponent {
                 </div>
             </div>
         `;
+  }
+
+  speakText(text) {
+    if ("speechSynthesis" in window && text) {
+      // Cancel any currently playing speech to avoid overlap
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      // You can configure utterance.voice, utterance.rate, etc. here if needed
+      window.speechSynthesis.speak(utterance);
+    }
   }
 
   getIconName(apiIcon) {
@@ -295,6 +297,8 @@ class NewFlashCard extends CardComponent {
     const componentRoot = document.getElementById(`card-${this.data.id}`);
     const flipper = card.querySelector(".new-flashcard-flipper");
     const favoriteBtn = card.querySelector(".favorite-btn");
+    const ttsBtnFront = card.querySelector(".new-flashcard-front .tts-btn");
+    const ttsBtnBack = card.querySelector(".new-flashcard-back .tts-btn");
     const leftGlow = componentRoot.querySelector(".left-glow");
     const rightGlow = componentRoot.querySelector(".right-glow");
 
@@ -315,11 +319,26 @@ class NewFlashCard extends CardComponent {
       e.currentTarget.classList.toggle("favorited");
     });
 
+    ttsBtnFront.addEventListener("click", (e) => {
+      e.stopPropagation(); // Prevent card from flipping
+      const cardData = this.data.cards[card.dataset.index];
+      this.speakText(cardData.front.title);
+    });
+
+    ttsBtnBack.addEventListener("click", (e) => {
+      e.stopPropagation(); // Prevent card from flipping
+      const cardData = this.data.cards[card.dataset.index];
+      this.speakText(cardData.back.description);
+    });
+
     const hammertime = new Hammer(card);
+
     hammertime.on("pan", (ev) => {
       flipper.classList.add("is-panning");
       const rotation = ev.deltaX / 20;
+      // We are reverting to the original logic that allows diagonal movement
       flipper.style.transform = `translate(${ev.deltaX}px, ${ev.deltaY}px) rotate(${rotation}deg)`;
+
       rightGlow.style.opacity = Math.max(0, ev.deltaX / 100);
       leftGlow.style.opacity = Math.max(0, -ev.deltaX / 100);
     });
@@ -339,8 +358,9 @@ class NewFlashCard extends CardComponent {
           ev.deltaY * 2
         }px) rotate(${ev.deltaX / 10}deg)`;
 
-        this.nextCard(isDone); // Call nextCard without timeout
+        this.nextCard(isDone);
       } else {
+        // --- REVERTED TO THE SIMPLE AND RELIABLE RESET ---
         flipper.style.transform = "";
       }
     });
@@ -484,22 +504,28 @@ class NewFlashCard extends CardComponent {
 
   updateHeaderUI() {
     const counter = document.querySelector(".card-counter");
-    if (counter)
+    if (counter) {
       counter.textContent = `${this.currentIndex + 1} / ${
         this.data.cards.length
       }`;
+    }
 
-    const progressSegments = document.querySelectorAll(".progress-segment");
-    progressSegments.forEach((segment, index) => {
-      const card = this.data.cards[index];
-      segment.classList.remove("active", "completed", "not-done");
-      if (this.doneCards.has(card.id)) segment.classList.add("completed");
-      if (this.notDoneCards.has(card.id)) segment.classList.add("not-done");
-      if (index === this.currentIndex) segment.classList.add("active");
-    });
+    // NEW: Update the unified progress bar
+    const progressBarFill = document.querySelector(
+      ".progress-bar-unified-fill"
+    );
+    if (progressBarFill) {
+      const percentage =
+        this.data.cards.length > 0
+          ? (this.currentIndex / this.data.cards.length) * 100
+          : 0;
+      progressBarFill.style.width = `${percentage}%`;
+    }
 
     const recallBtn = document.querySelector(".recall-btn");
-    if (recallBtn) recallBtn.disabled = this.swipeHistory.length === 0;
+    if (recallBtn) {
+      recallBtn.disabled = this.swipeHistory.length === 0;
+    }
   }
 
   recallCard() {

@@ -6,7 +6,13 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-color);
+  background-color: var(--bg-color); /* Fallback color */
+  background-image: linear-gradient(
+    160deg,
+    var(--secondary-surface-color),
+    /* Cool Gray */ var(--subtle-accent-surface),
+    /* Subtle Purple */ var(--bg-color) /* Off-White */
+  );
   position: relative;
   z-index: 2;
 }
@@ -19,20 +25,20 @@
   height: 4px;
   margin-bottom: 15px;
 }
-.new-flashcard-header .progress-segment {
-  flex-grow: 1;
+.progress-bar-unified {
+  width: 100%;
+  height: 6px; /* A bit thicker for better visibility */
   background-color: var(--primary-surface-color);
-  border-radius: 2px;
-  transition: background-color 0.3s;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 15px;
 }
-.new-flashcard-header .progress-segment.active {
+.progress-bar-unified-fill {
+  height: 100%;
+  width: 0%; /* Starts empty, JS will update this */
   background-color: var(--accent-primary);
-}
-.new-flashcard-header .progress-segment.completed {
-  background-color: var(--accent-success);
-}
-.new-flashcard-header .progress-segment.not-done {
-  background-color: var(--accent-secondary);
+  border-radius: 3px;
+  transition: width 0.4s ease-out; /* Smooth animation */
 }
 
 /* Header Controls */
@@ -98,6 +104,7 @@
   height: 100%;
   will-change: transform;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  touch-action: none;
 }
 .new-flashcard-slide.is-loading {
   opacity: 0;
@@ -131,11 +138,25 @@
   align-items: center;
   text-align: center;
   justify-content: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.07),
+    0 4px 6px -4px rgba(15, 23, 42, 0.07);
   overflow: hidden; /* Important for background icon */
 }
 .new-flashcard-back {
   transform: rotateY(180deg);
+}
+.new-flashcard-front {
+  pointer-events: auto;
+}
+.new-flashcard-back {
+  pointer-events: none;
+}
+/* When the card is flipped, we reverse the roles */
+.new-flashcard-flipper.flipped .new-flashcard-front {
+  pointer-events: none; /* Ignore clicks on the front when flipped */
+}
+.new-flashcard-flipper.flipped .new-flashcard-back {
+  pointer-events: auto; /* Allow clicks on the back when flipped */
 }
 
 /* --- NEW: Card Decorations --- */
@@ -185,10 +206,36 @@
   z-index: 1;
 }
 
+.tts-btn {
+  position: absolute;
+  bottom: 15px;
+  left: 15px; /* Positioned bottom-left */
+  background: none;
+  border: none;
+  color: var(--card-text-color, var(--text-primary));
+  opacity: 0.6;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+}
+.tts-btn svg {
+  width: 24px;
+  height: 24px;
+}
+.tts-btn:hover {
+  opacity: 1;
+}
 .favorite-btn {
   position: absolute;
-  top: 15px;
-  right: 15px; /* Moved to the right */
+  bottom: 15px; /* MOVED */
+  right: 15px;
+  top: auto; /* unset top position */
   background: none;
   border: none;
   color: var(--card-text-color, var(--text-primary));
@@ -244,11 +291,19 @@
 }
 .left-glow {
   left: 0;
-  background: linear-gradient(to right, rgba(233, 69, 96, 0.3), transparent);
+  background: linear-gradient(
+    to right,
+    rgba(var(--accent-secondary-rgb), 0.15),
+    transparent
+  );
 }
 .right-glow {
   right: 0;
-  background: linear-gradient(to left, rgba(45, 206, 137, 0.3), transparent);
+  background: linear-gradient(
+    to left,
+    rgba(var(--accent-success-rgb), 0.15),
+    transparent
+  );
 }
 
 /* --- RESULTS SCREEN STYLES --- */

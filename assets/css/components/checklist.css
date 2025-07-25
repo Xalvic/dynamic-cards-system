@@ -1,129 +1,180 @@
+body {
+  overflow: auto;
+}
 /* --- CHECKLIST STYLES --- */
 .checklist .card-content {
-  padding: 70px 20px 20px 20px;
+  padding: 25px 20px; /* Reduced overall padding */
 }
+
+/* --- IMPROVED PROGRESS HEADER --- */
 .checklist-progress-header {
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 25px;
+  border-radius: 12px; /* Softer rounded corners */
+  padding: 18px 20px; /* Adjusted padding */
+  margin-bottom: 20px;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(26, 26, 46, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color); /* Light border */
+  background-color: var(--primary-surface-color); /* Solid light background */
+  backdrop-filter: none; /* Removed blur */
+  -webkit-backdrop-filter: none; /* Removed blur */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle shadow */
 }
+
 .progress-header-top {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   color: var(--text-primary);
+  font-size: 1rem; /* Slightly larger font */
+  font-weight: 600; /* More prominent text */
+}
+
+.progress-header-top svg {
+  width: 22px;
+  height: 22px;
+  color: var(--accent-primary); /* Use a theme accent color for the icon */
+}
+
+.progress-counter {
+  margin-left: auto;
+  background-color: rgba(
+    var(--accent-primary-rgb),
+    0.15
+  ); /* Light accent color background */
+  color: var(--accent-primary); /* Accent color text */
+  padding: 4px 10px;
+  border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 500;
 }
-.progress-header-top svg {
-  width: 20px;
-  height: 20px;
-  color: var(--text-secondary);
-}
-.progress-counter {
-  margin-left: auto;
-  background-color: rgba(0, 0, 0, 0.2);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-}
+
 .reset-btn {
   background: none;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease-in-out;
 }
+
+.reset-btn:hover {
+  opacity: 1;
+}
+
 .reset-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
+
 .checklist .progress-bar-bg {
-  margin: 12px 0;
-  background-color: rgba(0, 0, 0, 0.3);
+  margin: 14px 0;
+  background-color: var(--border-color); /* Light background for the bar */
+  border-radius: 6px;
+  height: 8px; /* Slightly thicker progress bar */
+  overflow: hidden;
 }
+
 .checklist .progress-bar-fg {
   background-color: var(--accent-primary);
+  height: 8px;
+  border-radius: 6px;
 }
+
 .progress-header-bottom {
   display: flex;
   justify-content: space-between;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
 }
+
+/* --- IMPROVED CHECKLIST ITEMS --- */
 .checklist-list {
   list-style: none;
+  padding: 0; /* Remove default ul padding */
+}
+.item-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 .checklist-item {
   display: flex;
-  align-items: flex-start;
-  padding: 20px;
-  margin-bottom: 12px;
+  align-items: center; /* Vertically align checkbox and label */
+  padding: 12px 10px;
+  margin-bottom: 8px; /* Slight spacing between items */
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(26, 26, 46, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  border-radius: 12px; /* Softer rounded corners */
+  border: 1px solid var(--border-color); /* Light border */
+  background-color: var(--primary-surface-color); /* Solid light background */
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtle shadow */
 }
+
+.checklist-item:hover {
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.07); /* Slightly more pronounced hover effect */
+}
+
 .checklist-item.completed {
-  border-color: rgba(45, 206, 137, 0.5);
+  border-color: var(--accent-success);
 }
+
 .custom-checkbox {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--text-secondary);
-  border-radius: 50%;
-  margin-right: 15px;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px; /* More rounded checkbox */
+  margin-right: 18px;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   transition: all 0.2s;
-  margin-top: 2px;
 }
-/* --- NEW: Style for the Lucide check icon --- */
+
 .custom-checkbox svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   color: white;
   stroke-width: 3;
 }
+
 .checklist-item.completed .custom-checkbox {
   background-color: var(--accent-success);
   border-color: var(--accent-success);
 }
+
 .checklist-item label {
   flex-grow: 1;
-  padding-right: 50px;
+  font-weight: 500; /* Slightly bolder label */
+  color: var(--text-primary);
+  transition: color 0.2s;
 }
+
 .checklist-item.completed label {
-  text-decoration: none;
+  text-decoration: line-through;
+  opacity: 0.7;
   color: var(--text-secondary);
 }
+
 .complete-chip {
-  position: absolute;
-  bottom: 15px;
-  right: 20px;
-  background-color: rgba(45, 206, 137, 0.15);
+  margin-top: 8px; /* Add space between label and chip */
+  align-self: flex-start; /* Align to the left */
+  background-color: rgba(var(--accent-success-rgb), 0.15);
   color: var(--accent-success);
   font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 20px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 8px;
+  max-height: 0;
   opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.3s, transform 0.3s;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.4s ease, margin-top 0.4s ease;
 }
+
 .checklist-item.completed .complete-chip {
-  opacity: 1;
-  transform: translateY(0);
+  max-height: 50px; /* Animate height to reveal */
+  opacity: 1; /* Fade in */
+  margin-top: 8px;
 }

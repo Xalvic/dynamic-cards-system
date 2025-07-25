@@ -15,16 +15,19 @@
 }
 
 body.light-theme {
-  --bg-color: #f4f7f6;
+  --bg-color: #f8f9fa;
   --primary-surface-color: #ffffff;
-  --secondary-surface-color: #e9f2fd;
-  --text-primary: #32325d;
-  --text-secondary: #8898aa;
-  --accent-primary: #5e72e4;
-  --accent-secondary: #f5365c;
-  --accent-success: #2dce89;
-  --border-color: #e9ecef;
-  --accent-primary-glow: rgba(94, 114, 228, 0.1);
+  --secondary-surface-color: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent-primary: #3b82f6;
+  --accent-secondary: #ef4444;
+  --accent-success: #22c55e;
+  --border-color: #e2e8f0;
+  --accent-primary-glow: rgba(59, 130, 246, 0.1);
+  --accent-secondary-rgb: 239, 68, 68; /* RGB for the modern red */
+  --accent-success-rgb: 34, 197, 94; /* RGB for the modern green */
+  --subtle-accent-surface: #f5f3ff;
 }
 
 /* --- BASE & LAYOUT --- */
@@ -34,17 +37,24 @@ body.light-theme {
   padding: 0;
   -webkit-tap-highlight-color: transparent;
 }
-html, body {
-    height: 100%; /* Ensure body can be a flex container of full height */
+html,
+body {
+  height: 100%; /* Ensure body can be a flex container of full height */
 }
 body {
   font-family: "Poppins", sans-serif;
-  background-color: var(--bg-color);
   color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
+
+  background-color: var(--bg-color); /* Fallback color */
+  background-image: linear-gradient(
+    160deg,
+    var(--secondary-surface-color),
+    var(--bg-color)
+  );
 }
 body::after {
   content: "";
@@ -59,7 +69,7 @@ body::after {
   pointer-events: none;
 }
 .app-shell {
- height: 100%; 
+  height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
