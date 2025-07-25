@@ -1,10 +1,12 @@
 const ApiService = {
   async fetchCardData(actionId) {
     // Updated to handle both old and new flashcard types
-    if (
-      actionId === "drawingFlashcards" ||
-      actionId === "newDrawingFlashcards"
-    ) {
+    // newDrawingFlashcards
+
+    if (actionId === "newDrawingFlashcards") {
+      return this.transformApiData(this.getMockData(actionId), actionId);
+    }
+    if (actionId === "drawingFlashcards") {
       return this.fetchDrawingFlashcards(actionId);
     }
     return this.getMockData(actionId);
@@ -162,6 +164,78 @@ const ApiService = {
             completed: false,
           },
         ],
+      },
+      newDrawingFlashcards: {
+        cards: [
+          {
+            "background-gradient-color": ["#F0FDF4", "#DCFCE7"],
+            content:
+              "The face can be divided into equal sections to guide accurate placement of features. Practice the basic proportions before adding details.",
+            icon: "Ruler",
+            "text-color": "#064E3B",
+            title: "Understanding Facial Proportions",
+            type: "insight",
+          },
+          {
+            "background-gradient-color": ["#FEF2F2", "#FEE2E2"],
+            content:
+              "Begin by sketching simple shapes like ovals and lines to map out the head and facial features. This provides a solid foundation.",
+            icon: "Shapes",
+            "text-color": "#B91C1C",
+            title: "Start with Basic Shapes",
+            type: "tip",
+          },
+          {
+            "background-gradient-color": ["#ECFDF5", "#D1FAE5"],
+            content:
+              '"Art is not what you see, but what you make others see." - Edgar Degas. Take your time and enjoy the process.',
+            icon: "Brush",
+            "text-color": "#065F46",
+            title: "Patience is Key",
+            type: "quote",
+          },
+          {
+            "background-gradient-color": ["#FFFBEB", "#FEF3C7"],
+            content:
+              "Observe how light falls on the face to create depth and form. Use shading techniques to define contours and add realism.",
+            icon: "Sun",
+            "text-color": "#713F12",
+            title: "Light and Shadow",
+            type: "insight",
+          },
+          {
+            "background-gradient-color": ["#E0F2FE", "#BAE6FD"],
+            content:
+              "Eyes are the windows to the soul. Pay close attention to the shape, highlights, and shadows to capture their expressiveness.",
+            icon: "Eye",
+            "text-color": "#075985",
+            title: "Practice Eye Details",
+            type: "tip",
+          },
+          {
+            "background-gradient-color": ["#F5F3FF", "#EDE9FE"],
+            content:
+              "Every artist makes mistakes. Don't be afraid to experiment and learn from your errors. Keep practicing and you'll improve.",
+            icon: "Sparkles",
+            "text-color": "#5B21B6",
+            title: "Embrace Imperfection",
+            type: "motivation",
+          },
+          {
+            "background-gradient-color": ["#F0F9FF", "#E0F2FE"],
+            content:
+              "Understanding the underlying bone structure and muscles of the face will greatly enhance your ability to draw realistic portraits.",
+            icon: "Brain",
+            "text-color": "#0369A1",
+            title: "Study Anatomy",
+            type: "insight",
+          },
+        ],
+        id: "newDrawingFlashcards",
+        type: "new-flashcards",
+        subtitle:
+          "Unlock your artistic potential with these essential drawing tips.",
+        title: "Mastering the Human Face",
       },
     };
     return mockData[actionId] || null;

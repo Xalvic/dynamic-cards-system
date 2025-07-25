@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // --- NEW: Fetch data asynchronously ---
       const cardData = await ApiService.fetchCardData(actionId);
-
+      console.log(cardData)
       if (cardData) {
         displayCard(cardData);
       } else {
