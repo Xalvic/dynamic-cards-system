@@ -59,13 +59,13 @@ const ApiService = {
         duration: "1 minute",
         front: {
           title: card.title,
-          description: card.content,
+          description: "",
           hint: "Tap to flip",
         },
         back: {
-          title: "Reflection",
+          title: "",
           description:
-            "How can you apply this insight to your next drawing session?",
+            card.content,
         },
         icon: card.icon, // Pass the icon name
         styles: {
