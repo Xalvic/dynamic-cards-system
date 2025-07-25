@@ -63,6 +63,9 @@ document.addEventListener("DOMContentLoaded", () => {
       case "flashcards": // Note the 's' for the set
         cardComponent = new FlashCard(data);
         break;
+      case "new-flashcards":
+        cardComponent = new NewFlashCard(data);
+        break;
       case "checklist":
         cardComponent = new Checklist(data);
         break;

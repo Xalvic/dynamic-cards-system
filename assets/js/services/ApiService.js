@@ -1,17 +1,16 @@
 const ApiService = {
-  // This function now determines which data to fetch
   async fetchCardData(actionId) {
-    // If the action is for our new API-driven flashcards, fetch from the server.
-    if (actionId === "drawingFlashcards") {
-      return this.fetchDrawingFlashcards();
+    // Updated to handle both old and new flashcard types
+    if (
+      actionId === "drawingFlashcards" ||
+      actionId === "newDrawingFlashcards"
+    ) {
+      return this.fetchDrawingFlashcards(actionId);
     }
-
-    // Otherwise, return the local mock data for other components.
     return this.getMockData(actionId);
   },
 
-  // --- NEW: API Fetching Logic ---
-  async fetchDrawingFlashcards() {
+  async fetchDrawingFlashcards(actionId) {
     const apiUrl =
       "https://us-central1-riafy-public.cloudfunctions.net/genesis?otherFunctions=dexDirect&type=r10-apps-ftw";
     const requestBody = {
@@ -28,35 +27,34 @@ const ApiService = {
         body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`API request failed`);
 
       const apiData = await response.json();
 
-      // Transform the API data into the format our component expects
-      return this.transformApiData(apiData.data);
+      // Pass the actionId to the transformer
+      return this.transformApiData(apiData.data, actionId);
     } catch (error) {
       console.error("Failed to fetch flashcards:", error);
-      // Return null or a default error state if the API fails
       return null;
     }
   },
 
-  // --- NEW: Data Transformation Logic ---
-  transformApiData(data) {
-    // The API response for flashcards is under the 'cards' key
+  transformApiData(data, actionId) {
     if (!data.cards) return null;
 
+    // Determine the 'type' based on which notification was clicked
+    const componentType =
+      actionId === "newDrawingFlashcards" ? "new-flashcards" : "flashcards";
+
     return {
-      id: "drawingFlashcards",
-      type: "flashcards", // This tells the app which component to render
+      id: actionId,
+      type: componentType,
       title: data.title,
       subtitle: data.subtitle,
       cards: data.cards.map((card, index) => ({
         id: `api_fc_${index}`,
         step: `Tip ${index + 1} of ${data.cards.length}`,
-        duration: "1 minute", // Adding a default duration
+        duration: "1 minute",
         front: {
           title: card.title,
           description: card.content,
@@ -65,9 +63,9 @@ const ApiService = {
         back: {
           title: "Reflection",
           description:
-            "How can you apply this insight to your next drawing session? Take a moment to think about it.",
+            "How can you apply this insight to your next drawing session?",
         },
-        // Store the dynamic styling information
+        icon: card.icon, // Pass the icon name
         styles: {
           gradient: card["background-gradient-color"],
           textColor: card["text-color"],
@@ -76,7 +74,6 @@ const ApiService = {
     };
   },
 
-  // This function provides the notifications, including our new one
   getNotifications() {
     return [
       {
@@ -88,8 +85,14 @@ const ApiService = {
       {
         id: "notif_api",
         type: "flashcards",
-        title: "New! Drawing Tips", // This will trigger the API call
+        title: "Flashcards: Drawing Tips (Grid)",
         actionId: "drawingFlashcards",
+      },
+      {
+        id: "notif_new_api",
+        type: "new-flashcards",
+        title: "Flashcards: Drawing Tips (Slider)",
+        actionId: "newDrawingFlashcards",
       },
       {
         id: "notif3",
@@ -100,7 +103,6 @@ const ApiService = {
     ];
   },
 
-  // This holds the local mock data for components not using the API yet
   getMockData(actionId) {
     const mockData = {
       deepWorkQuiz: {
@@ -108,7 +110,6 @@ const ApiService = {
         type: "quiz",
         title: "Deep Work - Quiz",
         subtitle: "Test your knowledge of Cal Newport's Deep Work",
-        // Correct answers are marked with an asterisk for processing
         questions: [
           {
             question: "What is Deep Work?",
@@ -137,15 +138,6 @@ const ApiService = {
               "Only work when you feel inspired",
             ],
           },
-          {
-            question: "What is the Deep Work Hypothesis?",
-            options: [
-              "Deep work is not important in today's economy",
-              "*The ability to perform deep work is becoming increasingly rare and valuable",
-              "Shallow work is more efficient",
-              "Deep work leads to burnout",
-            ],
-          },
         ],
       },
       deepWorkChecklist: {
@@ -153,7 +145,6 @@ const ApiService = {
         type: "checklist",
         title: "Deep Work Implementation",
         subtitle: "Practical steps to transform your focus and productivity.",
-        // Renamed 'tasks' to 'items' and 'task' to 'text' for component consistency
         items: [
           {
             id: "item1",
@@ -168,16 +159,6 @@ const ApiService = {
           {
             id: "item3",
             text: "Install a website blocker (Cold Turkey, Freedom) and block social media during work hours.",
-            completed: false,
-          },
-          {
-            id: "item4",
-            text: "Create a shutdown ritual: write tomorrow's priorities, close laptop, and say 'schedule shutdown complete'.",
-            completed: false,
-          },
-          {
-            id: "item5",
-            text: "Track your deep work hours this week using a simple timer or app like Toggl.",
             completed: false,
           },
         ],
