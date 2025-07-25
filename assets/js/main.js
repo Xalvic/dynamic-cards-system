@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
   // --- THEME SETUP ---
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("theme") === "light") {
-    document.body.classList.add("light-theme");
+  if (urlParams.get("theme") === "dark") {
+    document.body.classList.remove("light-theme");
   }
 
   // --- UI ELEMENTS ---

@@ -7,6 +7,7 @@ class NewFlashCard extends CardComponent {
 
   resetState() {
     this.currentIndex = 0;
+    this.currentStatus = false;
     this.swipeHistory = [];
     this.favoritedCards = new Set();
     this.doneCards = new Set();
@@ -17,7 +18,6 @@ class NewFlashCard extends CardComponent {
     if (this.currentIndex >= this.data.cards.length) {
       return this.renderResults();
     }
-
     const canRecall = this.swipeHistory.length > 0;
 
     return `
@@ -190,7 +190,7 @@ class NewFlashCard extends CardComponent {
 
     // Instantly set the starting position of the cards (fanned out and invisible)
     // The final stack position is already set by the inline styles from render()
-    const baseAngle = -10;
+    const baseAngle = 5;
     anime.set(cards, {
       opacity: 0,
       translateY: (el, i) => {
@@ -199,9 +199,10 @@ class NewFlashCard extends CardComponent {
       },
       rotate: (el, i) => {
         // Fan them out slightly
-        const middle = Math.floor(cards.length / 2);
-        return (i - middle) * baseAngle;
-        // return baseAngle * (i + 1);
+        // const middle = Math.floor(cards.length / 2);
+        // return (i - middle) * baseAngle;
+        if (i === this.currentIndex) return baseAngle * (i + 1) - 120;
+        return baseAngle * (i + 1);
       },
     });
 
@@ -226,9 +227,47 @@ class NewFlashCard extends CardComponent {
       easing: "easeOutQuint", // A smooth easing function
     });
   }
+  _animateCardRecall() {
+    const componentRoot = document.getElementById(`card-${this.data.id}`);
+    if (!componentRoot) return;
 
-  attachEventListeners() {
-    this._animateCardEntry();
+    const cards = componentRoot.querySelectorAll(".new-flashcard-slide");
+    if (!cards.length) return;
+
+    const card = cards[this.currentIndex];
+    if (!card) return;
+
+    console.log(this.currentStatus);
+
+    // Optionally: Set starting position if recalling from off-screen
+    // Uncomment if needed based on your logic
+    // anime.set(card, {
+    //   translateX: fromLeft ? -window.innerWidth : window.innerWidth,
+    //   rotate: fromLeft ? -30 : 30,
+    // });
+    anime.set(card, {
+      translateX: this.currentStatus ? 100 : -100,
+      translateY: 10,
+      rotate: this.currentStatus ? 10 : -10,
+      opacity: 0,
+    });
+
+    // Animate back to center
+    anime({
+      opacity: 1,
+      targets: card,
+      translateX: 0,
+      translateY: 0,
+      rotate: 0,
+      scale: 1,
+      duration: 100,
+      easing: "easeOutQuint",
+    });
+  }
+
+  attachEventListeners(recall = false) {
+    if (!recall) this._animateCardEntry();
+    else this._animateCardRecall();
 
     if (this.currentIndex >= this.data.cards.length) {
       this.attachResultsListeners();
@@ -294,6 +333,7 @@ class NewFlashCard extends CardComponent {
       if (Math.abs(ev.deltaX) > threshold) {
         const moveOutWidth = window.innerWidth;
         const isDone = ev.deltaX > 0;
+        this.currentStatus = isDone;
         const endX = isDone ? moveOutWidth : -moveOutWidth;
         card.style.transform = `translate(${endX}px, ${
           ev.deltaY * 2
@@ -474,17 +514,17 @@ class NewFlashCard extends CardComponent {
       if (lastAction.wasNotDone) this.notDoneCards.add(lastAction.cardId);
       else this.notDoneCards.delete(lastAction.cardId);
 
-      this.updateUI();
+      this.updateUI(true);
     }
   }
 
-  updateUI() {
+  updateUI(recall = false) {
     const cardSetElement = document.getElementById(`card-${this.data.id}`);
     if (cardSetElement) {
       const mainAppContainer = document.getElementById("card-display-area");
       mainAppContainer.innerHTML = this.render();
       lucide.createIcons();
-      this.attachEventListeners();
+      this.attachEventListeners(recall);
     }
   }
 }
