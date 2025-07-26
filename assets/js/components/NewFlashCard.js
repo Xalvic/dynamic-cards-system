@@ -12,6 +12,8 @@ class NewFlashCard extends CardComponent {
     this.favoritedCards = new Set();
     this.doneCards = new Set();
     this.notDoneCards = new Set();
+    this.correctStreak = 0;
+    this.messageIndex = 0;
   }
 
   render() {
@@ -113,49 +115,129 @@ class NewFlashCard extends CardComponent {
     const notDoneCount = this.notDoneCards.size;
     const accuracy = total > 0 ? Math.round((doneCount / total) * 100) : 0;
 
+    // --- NEW: Dynamic title and subtitle based on score ---
+    let title = "";
+    let subtitle = "";
+    if (accuracy >= 90) {
+      title = "Excellent Work!";
+      subtitle = "You've mastered this set. Time for a new challenge!";
+    } else if (accuracy >= 60) {
+      title = "Great Progress!";
+      subtitle =
+        "You're getting the hang of it. Keep reviewing the tough ones!";
+    } else {
+      title = "Keep Going!";
+      subtitle = "Practice makes perfect. Let's give this set another try.";
+    }
+
     const radius = 65;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (accuracy / 100) * circumference;
 
     return `
-            <div class="card new-flashcard-set" id="card-${this.data.id}">
-                <div class="flashcard-results">
-                    <div class="results-card">
-                        <div class="results-deco-svg">
-                            <svg width="100" height="100" viewBox="0 0 100 100">
-                                <circle class="deco-circle" cx="20" cy="20" r="15"/>
-                                <rect class="deco-rect" x="60" y="60" width="30" height="30"/>
-                            </svg>
-                        </div>
-                        <h3 class="results-title">You're doing great!</h3>
-                        <p class="results-subtitle">Keep focusing on the tough terms.</p>
-                        
-                        <div class="results-progress-container">
-                            <div class="circular-progress">
-                                <svg width="150" height="150" viewBox="0 0 150 150">
-                                    <circle class="progress-bg" cx="75" cy="75" r="${radius}"></circle>
-                                    <circle class="progress-bar" cx="75" cy="75" r="${radius}"
-                                        stroke-dasharray="${circumference}" stroke-dashoffset="${circumference}" data-offset="${offset}">
-                                    </circle>
-                                </svg>
-                                <div class="progress-text">
-                                    <div class="progress-percentage">${accuracy}%</div>
-                                </div>
-                            </div>
-                            <div class="results-summary">
-                                <div class="summary-chip done">Know <span>${doneCount}</span></div>
-                                <div class="summary-chip not-done">Still learning <span>${notDoneCount}</span></div>
-                            </div>
-                        </div>
+      <div class="card new-flashcard-set" id="card-${this.data.id}">
+          <div class="flashcard-results">
+              <div class="results-card" data-accuracy="${accuracy}">
+                  <h3 class="results-title">${title}</h3>
+                  <p class="results-subtitle">${subtitle}</p>
+                  
+                  <div class="results-progress-container">
+                      <div class="circular-progress">
+                          <svg width="150" height="150" viewBox="0 0 150 150">
+                              <circle class="progress-bg" cx="75" cy="75" r="${radius}"></circle>
+                              <circle class="progress-bar" cx="75" cy="75" r="${radius}"
+                                  stroke-dasharray="${circumference}" stroke-dashoffset="${circumference}" data-offset="${offset}">
+                              </circle>
+                          </svg>
+                          <div class="progress-text">
+                              <div class="progress-percentage">${accuracy}%</div>
+                          </div>
+                      </div>
+                      <div class="results-summary">
+                          <div class="summary-chip done">Know <span>${doneCount}</span></div>
+                          <div class="summary-chip not-done">Still learning <span>${notDoneCount}</span></div>
+                      </div>
+                  </div>
 
-                        <div class="results-actions">
-                            <button class="restart-btn primary">Restart Deck</button>
-                            <button class="close-btn secondary">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+                  <div class="results-actions">
+                      <button class="restart-btn primary">Restart Deck</button>
+                      <button class="close-btn secondary">Close</button>
+                  </div>
+              </div>
+          </div>
+      </div>
+    `;
+  }
+  triggerBonusParticles() {
+    const resultsCard = document.querySelector(".results-card");
+    if (!resultsCard) return;
+
+    const container = document.createElement("div");
+    container.classList.add("celebration-container");
+    resultsCard.appendChild(container);
+
+    const colors = ["#A8D0E6", "#F7D4A2", "#84DCC6", "#FFAAA5"];
+
+    // This creates the particle burst using anime.js
+    for (let i = 0; i < 60; i++) {
+      const particle = document.createElement("div");
+      particle.classList.add("particle");
+      particle.style.backgroundColor =
+        colors[anime.random(0, colors.length - 1)];
+      particle.style.left = `${anime.random(10, 90)}%`;
+      particle.style.top = `${anime.random(20, 80)}%`;
+      container.appendChild(particle);
+
+      anime({
+        targets: particle,
+        scale: [0, anime.random(0.5, 1.2)],
+        opacity: [1, 0],
+        translateY: [0, anime.random(-100, 100)],
+        duration: anime.random(1000, 2000),
+        easing: "easeOutExpo",
+        complete: () => container.removeChild(particle),
+      });
+    }
+
+    setTimeout(() => {
+      if (resultsCard.contains(container)) {
+        resultsCard.removeChild(container);
+      }
+    }, 2500);
+  }
+  triggerResultsCelebration(score) {
+    // Ensure the <dotlottie-player> component is loaded
+    if (typeof customElements.get("dotlottie-player") === "undefined") {
+      console.error("DotLottie player not loaded.");
+      return;
+    }
+
+    let lottiePath = "";
+
+    // --- Select the animation based on score ---
+    if (score >= 90) {
+      // IMPORTANT: Change to your "grand" animation file path
+      lottiePath = "../../../assets/animations/Confetti-3.lottie";
+    } else if (score >= 60) {
+      // IMPORTANT: Change to your "simple" animation file path
+      lottiePath = "../../../assets/animations/Confetti-2.lottie";
+    } else {
+      return; // No animation for low scores
+    }
+
+    const lottiePlayer = document.createElement("dotlottie-player");
+    lottiePlayer.src = lottiePath;
+    lottiePlayer.setAttribute("autoplay", true);
+
+    // Append to the body for a full-screen effect
+    document.body.appendChild(lottiePlayer);
+
+    // Add an event listener to automatically remove the player when it's done
+    lottiePlayer.addEventListener("complete", () => {
+      if (document.body.contains(lottiePlayer)) {
+        document.body.removeChild(lottiePlayer);
+      }
+    });
   }
 
   speakText(text) {
@@ -406,18 +488,27 @@ class NewFlashCard extends CardComponent {
     }
 
     if (window.anime) {
-      const progressBar = document.querySelector(
-        ".flashcard-results .progress-bar"
-      );
+      const resultsCard = document.querySelector(".results-card");
+      const progressBar = resultsCard.querySelector(".progress-bar");
       const finalOffset = progressBar.dataset.offset;
-      const tl = anime.timeline({ easing: "easeOutExpo", duration: 800 });
-      tl.add({ targets: ".results-card", scale: [0.8, 1], opacity: [0, 1] })
+      const accuracy = parseInt(resultsCard.dataset.accuracy, 10);
+
+      const tl = anime.timeline({
+        easing: "spring(1, 80, 10, 0)", // Use a bouncy spring easing
+        duration: 800,
+      });
+
+      tl.add({
+        targets: ".results-card",
+        scale: [0.8, 1],
+        opacity: [0, 1],
+      })
         .add(
           {
             targets: ".results-title, .results-subtitle",
             translateY: [20, 0],
             opacity: [0, 1],
-            delay: anime.stagger(100),
+            delay: anime.stagger(100, { easing: "easeOutQuad" }),
           },
           "-=600"
         )
@@ -425,7 +516,9 @@ class NewFlashCard extends CardComponent {
           {
             targets: progressBar,
             strokeDashoffset: [anime.setDashoffset, finalOffset],
-            duration: 1200,
+            opacity: 1,
+            duration: 1500,
+            easing: "easeInOutCirc",
           },
           "-=500"
         )
@@ -434,31 +527,18 @@ class NewFlashCard extends CardComponent {
             targets: ".results-summary .summary-chip, .results-actions button",
             translateY: [20, 0],
             opacity: [0, 1],
-            delay: anime.stagger(100),
+            delay: anime.stagger(100, { easing: "easeOutQuad" }),
           },
-          "-=800"
-        )
-        .add(
-          {
-            targets: ".results-deco-svg .deco-circle",
-            translateX: [-20, 0],
-            translateY: [-20, 0],
-            opacity: [0, 1],
-            duration: 600,
-          },
-          "-=1000"
-        )
-        .add(
-          {
-            targets: ".results-deco-svg .deco-rect",
-            translateX: [20, 0],
-            translateY: [20, 0],
-            opacity: [0, 1],
-            rotate: [-45, 0],
-            duration: 600,
-          },
-          "-=900"
+          "-=1200"
         );
+
+      // Trigger the score-based celebration after a short delay
+      setTimeout(() => {
+        this.triggerResultsCelebration(accuracy);
+        if (accuracy >= 90) {
+          this.triggerBonusParticles();
+        }
+      }, 500);
     }
   }
 
@@ -486,9 +566,15 @@ class NewFlashCard extends CardComponent {
         this.doneCards.add(cardId);
         this.notDoneCards.delete(cardId);
         this.triggerProgressBarParticles();
+
+        this.correctStreak++;
+        if (this.correctStreak > 0 && this.correctStreak % 3 === 0) {
+          this.triggerMidwayCelebration();
+        }
       } else {
         this.notDoneCards.add(cardId);
         this.doneCards.delete(cardId);
+        this.correctStreak = 0;
       }
       this.currentIndex++;
       this.animateNextCard();
@@ -592,7 +678,78 @@ class NewFlashCard extends CardComponent {
     }
     this.updateHeaderUI();
   }
+  triggerMidwayCelebration() {
+    const cardContainer = document.getElementById(`card-${this.data.id}`);
+    if (!cardContainer) return;
 
+    const messages = [
+      "Awesome!",
+      "Great!",
+      "Nailed It!",
+      "Superb!",
+      "Brilliant!",
+    ];
+    const message = messages[this.messageIndex];
+    this.messageIndex = (this.messageIndex + 1) % messages.length;
+    const colors = ["#A8D0E6", "#F7D4A2", "#84DCC6", "#FFAAA5", "#A3A8E6"];
+
+    const container = document.createElement("div");
+    container.classList.add("midway-celebration");
+
+    const messageEl = document.createElement("div");
+    messageEl.classList.add("midway-message");
+    messageEl.textContent = message;
+    container.appendChild(messageEl);
+
+    cardContainer.appendChild(container);
+
+    const tl = anime.timeline({
+      complete: () => cardContainer.removeChild(container),
+    });
+
+    tl.add({
+      targets: container,
+      translateX: "-50%",
+      translateY: [-100, 0],
+      opacity: [0, 1],
+      scale: [0.9, 1],
+      duration: 600,
+      easing: "spring(1, 80, 15, 0)",
+    }).add(
+      {
+        targets: container,
+        translateX: "-50%",
+        translateY: [0, -50],
+        opacity: [1, 0],
+        scale: 0.9,
+        duration: 500,
+        easing: "easeInExpo",
+      },
+      "+=500"
+    );
+
+    // Particle burst
+    const particleContainer = document.createElement("div");
+    particleContainer.classList.add("midway-particle-container");
+    container.appendChild(particleContainer);
+
+    for (let i = 0; i < 25; i++) {
+      const particle = document.createElement("div");
+      particle.classList.add("midway-particle");
+      particle.style.backgroundColor =
+        colors[anime.random(0, colors.length - 1)];
+      particleContainer.appendChild(particle);
+
+      anime({
+        targets: particle,
+        translateX: anime.random(-100, 100),
+        translateY: anime.random(-80, 80),
+        scale: [0, anime.random(0.5, 1.2), 0],
+        duration: anime.random(600, 1200),
+        easing: "easeOutExpo",
+      });
+    }
+  }
   updateHeaderUI() {
     const cardSetElement = document.getElementById(`card-${this.data.id}`);
     if (!cardSetElement) return;
