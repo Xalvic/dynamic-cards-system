@@ -58,11 +58,11 @@ class Checklist extends CardComponent {
     const isCompleted = this.completedItems.has(item.id);
     const checkIcon = isCompleted ? '<i data-lucide="check"></i>' : "";
 
-    // The chip is now inside a new "item-content" wrapper
     return `
       <li class="checklist-item ${
         isCompleted ? "completed" : ""
       }" data-item-id="${item.id}">
+          <div class="item-fill-bg"></div>
           <div class="custom-checkbox">
               ${checkIcon}
           </div>
@@ -112,7 +112,7 @@ class Checklist extends CardComponent {
       this.completedItems.size === this.data.items.length &&
       this.data.items.length > 0
     ) {
-      this.triggerConfetti();
+      this.triggerCompletionCelebration();
     }
   }
 
@@ -123,32 +123,85 @@ class Checklist extends CardComponent {
     if (!itemElement) return;
 
     const isCompleted = this.completedItems.has(itemId);
-    itemElement.classList.toggle("completed", isCompleted);
-
     const checkbox = itemElement.querySelector(".custom-checkbox");
     const chip = itemElement.querySelector(".complete-chip");
 
+    // --- NEW: Read the color values from CSS first ---
+    const computedStyle = getComputedStyle(document.body);
+    const successColor = computedStyle
+      .getPropertyValue("--accent-success-dark")
+      .trim();
+    const defaultBorderColor = computedStyle
+      .getPropertyValue("--border-color")
+      .trim();
+
+    const timeline = anime.timeline({
+      duration: 400,
+      easing: "easeOutExpo",
+    });
+
     if (isCompleted) {
+      itemElement.classList.add("completed");
       checkbox.innerHTML = '<i data-lucide="check"></i>';
-
-      // NEW: Update the chip with the formatted timestamp
-      const timestamp = this.completedItems.get(itemId);
-      chip.textContent = `Done: ${this.formatTimestamp(timestamp)}`;
-
+      lucide.createIcons();
       const checkIcon = checkbox.querySelector("svg");
-      if (checkIcon) {
-        anime({
-          targets: checkIcon,
-          scale: [0.5, 1],
-          duration: 300,
-          easing: "easeOutBack",
-        });
-      }
-    } else {
-      checkbox.innerHTML = "";
-    }
 
-    lucide.createIcons();
+      timeline
+        .add({
+          targets: checkbox,
+          // --- Use the concrete color value instead of the variable ---
+          backgroundColor: successColor,
+          borderColor: successColor,
+          borderBottomWidth: "2px",
+          transform: "translateY(2px)",
+          duration: 200,
+        })
+        .add(
+          {
+            targets: checkIcon,
+            scale: [0.5, 1],
+            rotate: "360deg",
+            easing: "easeOutBack",
+          },
+          "-=300"
+        )
+        .add(
+          {
+            begin: () => {
+              const timestamp = this.completedItems.get(itemId);
+              chip.textContent = `Done: ${this.formatTimestamp(timestamp)}`;
+            },
+          },
+          "-=300"
+        );
+    } else {
+      itemElement.classList.remove("completed");
+      this.triggerUncheckParticles(checkbox);
+
+      timeline
+        .add({
+          targets: checkbox,
+          backgroundColor: "#FFFFFF",
+          // --- Use the concrete color value here too ---
+          borderColor: defaultBorderColor,
+          borderBottomWidth: "4px",
+          transform: "translateY(0px)",
+          duration: 200,
+        })
+        .add(
+          {
+            targets: checkbox.querySelector("svg"),
+            scale: 0,
+            rotate: "-360deg",
+            easing: "easeInBack",
+            duration: 300,
+            complete: () => {
+              checkbox.innerHTML = "";
+            },
+          },
+          "-=400"
+        );
+    }
   }
   updateProgressUI() {
     const componentRoot = document.getElementById(`card-${this.data.id}`);
@@ -169,7 +222,41 @@ class Checklist extends CardComponent {
     if (percentageText)
       percentageText.textContent = `${Math.round(progress)}% Complete`;
   }
+  triggerUncheckParticles(checkboxElement) {
+    const container = document.createElement("div");
+    container.classList.add("particle-container");
+    checkboxElement.appendChild(container);
 
+    for (let i = 0; i < 15; i++) {
+      const particle = document.createElement("div");
+      particle.classList.add("uncheck-particle");
+      container.appendChild(particle);
+
+      anime({
+        targets: particle,
+        translateX: anime.random(-30, 30),
+        translateY: anime.random(-30, 30),
+        scale: [anime.random(0.5, 1), 0],
+        opacity: [1, 0],
+        duration: anime.random(400, 600),
+        easing: "easeOutExpo",
+        complete: () => {
+          // Check if the particle still exists before removing
+          if (container.contains(particle)) {
+            container.removeChild(particle);
+          }
+        },
+      });
+    }
+
+    // Clean up the container after a short delay
+    setTimeout(() => {
+      // Check if the container still exists before removing
+      if (checkboxElement.contains(container)) {
+        checkboxElement.removeChild(container);
+      }
+    }, 1000);
+  }
   // The main updateUI method is now only needed for major resets
   updateUI() {
     const cardSetElement = document.getElementById(`card-${this.data.id}`);
@@ -181,47 +268,61 @@ class Checklist extends CardComponent {
     }
   }
 
-  triggerConfetti() {
-    // First, ensure the library has been loaded
-    if (typeof confetti !== "function") {
-      console.error("Confetti library is not loaded!");
-      return;
+  triggerCompletionCelebration() {
+    // We target the main card element now, not just the header
+    const cardElement = document.getElementById(`card-${this.data.id}`);
+    const header = cardElement.querySelector(".checklist-progress-header");
+    if (!cardElement || !header) return;
+
+    const celebrationContainer = document.createElement("div");
+    celebrationContainer.classList.add("celebration-container");
+    // Append to the main card so it doesn't affect the header's layout
+    cardElement.appendChild(celebrationContainer);
+
+    // Calculate the origin point to be the center of the header
+    const headerRect = header.getBoundingClientRect();
+    const cardRect = cardElement.getBoundingClientRect();
+    const originX = headerRect.left - cardRect.left + headerRect.width / 2;
+    const originY = headerRect.top - cardRect.top + headerRect.height / 2;
+
+    for (let i = 0; i < 50; i++) {
+      const particle = document.createElement("div");
+      particle.classList.add("particle");
+      // Position the particle at the calculated origin before animating
+      particle.style.left = `${originX}px`;
+      particle.style.top = `${originY}px`;
+      particle.style.backgroundColor = `hsl(${anime.random(
+        190,
+        230
+      )}, 100%, 70%)`;
+      particle.style.width = `${anime.random(5, 15)}px`;
+      particle.style.height = particle.style.width;
+      celebrationContainer.appendChild(particle);
+
+      anime({
+        targets: particle,
+        translateX: anime.random(-150, 150),
+        translateY: anime.random(-100, 100),
+        scale: [0, 1, 0],
+        opacity: [1, 0],
+        duration: anime.random(800, 1200),
+        easing: "easeOutExpo",
+        complete: () => celebrationContainer.removeChild(particle),
+      });
     }
 
-    // A modern, Duolingo-style color palette
-    const beautifulColors = [
-      "#5DADE2",
-      "#F7DC6F",
-      "#76D7C4",
-      "#F1948A",
-      "#BB8FCE",
-    ];
+    anime({
+      targets: header,
+      scale: [1, 1.05, 1],
+      duration: 600,
+      easing: "easeInOutSine",
+    });
 
-    // Function to fire a burst of confetti
-    const fire = (particleRatio, opts) => {
-      confetti(
-        Object.assign(
-          {},
-          {
-            origin: { y: 0.6 }, // Start slightly below the top
-            particleCount: Math.floor(200 * particleRatio),
-            spread: 120, // How wide the confetti spreads
-            gravity: 0.8, // How fast it falls
-            scalar: 1.1, // How big the particles are
-            ticks: 150, // How long the particles stay on screen
-            colors: beautifulColors,
-            shapes: ["square", "circle"],
-          },
-          opts
-        )
-      );
-    };
-
-    // Fire multiple bursts for a more dynamic effect
-    fire(0.25, { spread: 26, startVelocity: 55 });
-    fire(0.2, { spread: 60 });
-    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-    fire(0.1, { spread: 120, startVelocity: 45 });
+    // Clean up the main container after the animation is well over
+    setTimeout(() => {
+      if (cardElement.contains(celebrationContainer)) {
+        cardElement.removeChild(celebrationContainer);
+      }
+    }, 2000);
   }
 }

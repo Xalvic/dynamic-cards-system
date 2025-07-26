@@ -1,51 +1,36 @@
-body {
-  overflow: auto;
-}
-/* --- CHECKLIST STYLES --- */
-.checklist .card-content {
-  padding: 25px 20px; /* Reduced overall padding */
-}
-
-/* --- IMPROVED PROGRESS HEADER --- */
+/* --- ANIMATED CHECKLIST STYLES --- */
 .checklist-progress-header {
-  border-radius: 12px; /* Softer rounded corners */
-  padding: 18px 20px; /* Adjusted padding */
+  border-radius: 12px;
+  padding: 18px 20px;
   margin-bottom: 20px;
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--border-color); /* Light border */
-  background-color: var(--primary-surface-color); /* Solid light background */
-  backdrop-filter: none; /* Removed blur */
-  -webkit-backdrop-filter: none; /* Removed blur */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+  border: 1px solid var(--border-color);
+  background-color: var(--primary-surface-color);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  /* NEW: More defined box shadow for a "lifted" effect */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
 }
-
-.progress-header-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-primary);
-  font-size: 1rem; /* Slightly larger font */
-  font-weight: 600; /* More prominent text */
-}
-
 .progress-header-top svg {
   width: 22px;
   height: 22px;
-  color: var(--accent-primary); /* Use a theme accent color for the icon */
+  color: var(--accent-primary); /* Use the theme's primary accent color */
+  flex-shrink: 0;
 }
 
 .progress-counter {
   margin-left: auto;
   background-color: rgba(
     var(--accent-primary-rgb),
-    0.15
-  ); /* Light accent color background */
-  color: var(--accent-primary); /* Accent color text */
+    0.1
+  ); /* Light, themed background */
+  color: var(--accent-primary);
   padding: 4px 10px;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .reset-btn {
@@ -53,12 +38,18 @@ body {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0.7;
-  transition: opacity 0.2s ease-in-out;
+  transition: opacity 0.2s, background-color 0.2s;
 }
 
 .reset-btn:hover {
   opacity: 1;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .reset-btn svg {
@@ -66,71 +57,69 @@ body {
   height: 20px;
 }
 
-.checklist .progress-bar-bg {
-  margin: 14px 0;
-  background-color: var(--border-color); /* Light background for the bar */
-  border-radius: 6px;
-  height: 8px; /* Slightly thicker progress bar */
-  overflow: hidden;
+.checklist .card-content {
+  padding: 25px 20px;
 }
 
-.checklist .progress-bar-fg {
-  background-color: var(--accent-primary);
-  height: 8px;
-  border-radius: 6px;
-}
-
-.progress-header-bottom {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-/* --- IMPROVED CHECKLIST ITEMS --- */
 .checklist-list {
   list-style: none;
-  padding: 0; /* Remove default ul padding */
+  padding: 0;
 }
-.item-content {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
+
 .checklist-item {
   display: flex;
-  align-items: center; /* Vertically align checkbox and label */
-  padding: 12px 10px;
-  margin-bottom: 8px; /* Slight spacing between items */
+  align-items: center;
+  padding: 16px 12px;
+  margin-bottom: 8px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  border-radius: 12px; /* Softer rounded corners */
-  border: 1px solid var(--border-color); /* Light border */
-  background-color: var(--primary-surface-color); /* Solid light background */
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--primary-surface-color);
+  transition: box-shadow 0.2s ease-in-out;
 }
 
-.checklist-item:hover {
-  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.07); /* Slightly more pronounced hover effect */
+/* 1. Energy Fill Background */
+.item-fill-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0%; /* Starts at 0, will be animated */
+  height: 100%;
+  background-color: rgba(var(--accent-success-rgb), 0.1);
+  border-radius: 12px;
+  z-index: 0;
 }
 
-.checklist-item.completed {
-  border-color: var(--accent-success);
+.checklist-item .custom-checkbox,
+.checklist-item .item-content {
+  position: relative;
+  z-index: 1; /* Ensures content is above the fill background */
 }
 
+/* 2. 3D Checkbox */
 .custom-checkbox {
   width: 26px;
   height: 26px;
   border: 2px solid var(--border-color);
-  border-radius: 8px; /* More rounded checkbox */
+  border-bottom: 4px solid #d1d5db; /* Darker bottom for 3D look */
+  background-color: #ffffff;
+  border-radius: 8px;
   margin-right: 18px;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: all 0.2s;
+  transition: all 0.1s ease-out;
+  position: relative; /* For particle container */
+}
+
+.checklist-item.completed .custom-checkbox {
+  background-color: var(--accent-success-dark); /* Use the new dark green */
+  border-color: var(--accent-success-dark);
+  border-bottom-width: 2px;
+  transform: translateY(2px);
 }
 
 .custom-checkbox svg {
@@ -140,27 +129,65 @@ body {
   stroke-width: 3;
 }
 
-.checklist-item.completed .custom-checkbox {
-  background-color: var(--accent-success);
-  border-color: var(--accent-success);
+/* 3. Animated Strikethrough */
+.item-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 .checklist-item label {
-  flex-grow: 1;
-  font-weight: 500; /* Slightly bolder label */
+  position: relative;
+  font-weight: 500;
   color: var(--text-primary);
-  transition: color 0.2s;
+  transition: color 0.4s ease;
+}
+
+.checklist-item label::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent-success);
+  transform: scaleX(0); /* Starts at 0 width */
+  transform-origin: left;
+  transition: transform 0.4s ease-out 0.2s; /* Delay the strikethrough slightly */
 }
 
 .checklist-item.completed label {
-  text-decoration: line-through;
-  opacity: 0.7;
   color: var(--text-secondary);
+  opacity: 0.7;
 }
 
+.checklist-item.completed label::after {
+  transform: scaleX(1);
+}
+
+/* 4. Un-check Particles */
+.particle-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.uncheck-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background-color: var(--text-secondary);
+  border-radius: 50%;
+}
+
+/* Chip Styling (from before) */
 .complete-chip {
-  margin-top: 8px; /* Add space between label and chip */
-  align-self: flex-start; /* Align to the left */
+  margin-top: 8px;
+  align-self: flex-start;
   background-color: rgba(var(--accent-success-rgb), 0.15);
   color: var(--accent-success);
   font-size: 0.75rem;
@@ -172,9 +199,22 @@ body {
   overflow: hidden;
   transition: max-height 0.4s ease, opacity 0.4s ease, margin-top 0.4s ease;
 }
-
 .checklist-item.completed .complete-chip {
-  max-height: 50px; /* Animate height to reveal */
-  opacity: 1; /* Fade in */
+  max-height: 50px;
+  opacity: 1;
   margin-top: 8px;
+}
+.celebration-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10; /* Make sure it's on top of other content */
+}
+.particle {
+  position: absolute; /* Positioned relative to the container */
+  border-radius: 50%;
+  opacity: 0;
 }

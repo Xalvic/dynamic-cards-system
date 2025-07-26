@@ -142,13 +142,11 @@
     0 4px 6px -4px rgba(15, 23, 42, 0.07);
   overflow: hidden; /* Important for background icon */
 }
-.new-flashcard-back {
-  transform: rotateY(180deg);
-}
 .new-flashcard-front {
   pointer-events: auto;
 }
 .new-flashcard-back {
+  transform: rotateY(180deg) translateZ(1px);
   pointer-events: none;
 }
 /* When the card is flipped, we reverse the roles */

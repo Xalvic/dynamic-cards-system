@@ -23,6 +23,7 @@ body.light-theme {
   --accent-primary: #3b82f6;
   --accent-secondary: #ef4444;
   --accent-success: #22c55e;
+   --accent-success-dark: #15803d;
   --border-color: #e2e8f0;
   --accent-primary-glow: rgba(59, 130, 246, 0.1);
   --accent-secondary-rgb: 239, 68, 68; /* RGB for the modern red */
