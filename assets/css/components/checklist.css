@@ -85,11 +85,33 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 0%; /* Starts at 0, will be animated */
+  width: 0%; /* Starts at 0, animated via JS */
   height: 100%;
-  background-color: rgba(var(--accent-success-rgb), 0.1);
+  background-color: rgba(var(--accent-success-rgb), 0.15); /* A light green */
   border-radius: 12px;
   z-index: 0;
+}
+
+/* The container for the new particles */
+.fill-particle-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Individual particles */
+.fill-particle {
+  position: absolute;
+  left: 25px; /* Start near the checkbox */
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent-success);
+  border-radius: 50%;
 }
 
 .checklist-item .custom-checkbox,
@@ -203,18 +225,4 @@
   max-height: 50px;
   opacity: 1;
   margin-top: 8px;
-}
-.celebration-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 10; /* Make sure it's on top of other content */
-}
-.particle {
-  position: absolute; /* Positioned relative to the container */
-  border-radius: 50%;
-  opacity: 0;
 }

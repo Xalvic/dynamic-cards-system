@@ -6,6 +6,7 @@ class Checklist extends CardComponent {
         .filter((item) => item.completed)
         .map((item) => [item.id, Date.now()]) // Store with a timestamp
     );
+    this.completionSound = new Audio("../../../assets/sounds/sucess.mp3");
   }
   resetState() {
     this.completedItems.clear();
@@ -123,10 +124,10 @@ class Checklist extends CardComponent {
     if (!itemElement) return;
 
     const isCompleted = this.completedItems.has(itemId);
+    const fillBg = itemElement.querySelector(".item-fill-bg");
     const checkbox = itemElement.querySelector(".custom-checkbox");
     const chip = itemElement.querySelector(".complete-chip");
 
-    // --- NEW: Read the color values from CSS first ---
     const computedStyle = getComputedStyle(document.body);
     const successColor = computedStyle
       .getPropertyValue("--accent-success-dark")
@@ -136,8 +137,8 @@ class Checklist extends CardComponent {
       .trim();
 
     const timeline = anime.timeline({
-      duration: 400,
-      easing: "easeOutExpo",
+      duration: 600, // Slightly longer duration for a smoother feel
+      easing: "easeOutQuint",
     });
 
     if (isCompleted) {
@@ -146,24 +147,36 @@ class Checklist extends CardComponent {
       lucide.createIcons();
       const checkIcon = checkbox.querySelector("svg");
 
+      // Trigger the particle burst
+      this.triggerFillParticles(itemElement);
+
       timeline
         .add({
-          targets: checkbox,
-          // --- Use the concrete color value instead of the variable ---
-          backgroundColor: successColor,
-          borderColor: successColor,
-          borderBottomWidth: "2px",
-          transform: "translateY(2px)",
-          duration: 200,
+          // 1. Animate the background fill
+          targets: fillBg,
+          width: "100%",
         })
         .add(
           {
-            targets: checkIcon,
-            scale: [0.5, 1],
-            rotate: "360deg",
-            easing: "easeOutBack",
+            // 2. Animate the 3D checkbox press
+            targets: checkbox,
+            backgroundColor: successColor,
+            borderColor: successColor,
+            borderBottomWidth: "2px",
+            transform: "translateY(2px)",
+            duration: 200,
           },
-          "-=300"
+          "-=600"
+        ) // Overlap completely with the fill
+        .add(
+          {
+            // 3. Animate the checkmark icon pop
+            targets: checkIcon,
+            scale: [0, 1],
+            rotate: "360deg",
+            easing: "spring(1, 80, 10, 0)", // A bouncy spring animation
+          },
+          "-=450"
         )
         .add(
           {
@@ -175,21 +188,31 @@ class Checklist extends CardComponent {
           "-=300"
         );
     } else {
+      // UN-CHECKING
       itemElement.classList.remove("completed");
-      this.triggerUncheckParticles(checkbox);
+      this.triggerUncheckParticles(checkbox); // Keep the un-check poof
 
       timeline
         .add({
-          targets: checkbox,
-          backgroundColor: "#FFFFFF",
-          // --- Use the concrete color value here too ---
-          borderColor: defaultBorderColor,
-          borderBottomWidth: "4px",
-          transform: "translateY(0px)",
-          duration: 200,
+          targets: fillBg, // Animate the fill away
+          width: "0%",
+          easing: "easeInQuint",
         })
         .add(
           {
+            // Release the 3D checkbox
+            targets: checkbox,
+            backgroundColor: "#FFFFFF",
+            borderColor: defaultBorderColor,
+            borderBottomWidth: "4px",
+            transform: "translateY(0px)",
+            duration: 200,
+          },
+          "-=600"
+        )
+        .add(
+          {
+            // Hide the checkmark icon
             targets: checkbox.querySelector("svg"),
             scale: 0,
             rotate: "-360deg",
@@ -199,7 +222,7 @@ class Checklist extends CardComponent {
               checkbox.innerHTML = "";
             },
           },
-          "-=400"
+          "-=600"
         );
     }
   }
@@ -221,6 +244,34 @@ class Checklist extends CardComponent {
     if (progressBar) progressBar.style.width = `${progress}%`;
     if (percentageText)
       percentageText.textContent = `${Math.round(progress)}% Complete`;
+  }
+  triggerFillParticles(itemElement) {
+    const container = document.createElement("div");
+    container.classList.add("fill-particle-container");
+    itemElement.appendChild(container);
+
+    for (let i = 0; i < 20; i++) {
+      const particle = document.createElement("div");
+      particle.classList.add("fill-particle");
+      container.appendChild(particle);
+
+      anime({
+        targets: particle,
+        translateX: [0, anime.random(60, 120)], // Move horizontally
+        translateY: [0, anime.random(-20, 20)], // Slight vertical spread
+        scale: [anime.random(0.5, 1.2), 0],
+        opacity: [1, 0],
+        duration: anime.random(400, 700),
+        easing: "easeOutQuad",
+        complete: () => container.removeChild(particle),
+      });
+    }
+
+    setTimeout(() => {
+      if (itemElement.contains(container)) {
+        itemElement.removeChild(container);
+      }
+    }, 1000);
   }
   triggerUncheckParticles(checkboxElement) {
     const container = document.createElement("div");
@@ -269,60 +320,83 @@ class Checklist extends CardComponent {
   }
 
   triggerCompletionCelebration() {
-    // We target the main card element now, not just the header
+    this.completionSound.play();
+    if (typeof mojs === "undefined") {
+      console.error("mo.js library is not loaded!");
+      return;
+    }
+
     const cardElement = document.getElementById(`card-${this.data.id}`);
     const header = cardElement.querySelector(".checklist-progress-header");
     if (!cardElement || !header) return;
 
-    const celebrationContainer = document.createElement("div");
-    celebrationContainer.classList.add("celebration-container");
-    // Append to the main card so it doesn't affect the header's layout
-    cardElement.appendChild(celebrationContainer);
-
-    // Calculate the origin point to be the center of the header
     const headerRect = header.getBoundingClientRect();
     const cardRect = cardElement.getBoundingClientRect();
-    const originX = headerRect.left - cardRect.left + headerRect.width / 2;
-    const originY = headerRect.top - cardRect.top + headerRect.height / 2;
+    const originX = `${
+      headerRect.left - cardRect.left + headerRect.width / 2
+    }px`;
+    const originY = `${
+      headerRect.top - cardRect.top + headerRect.height / 2
+    }px`;
 
-    for (let i = 0; i < 50; i++) {
-      const particle = document.createElement("div");
-      particle.classList.add("particle");
-      // Position the particle at the calculated origin before animating
-      particle.style.left = `${originX}px`;
-      particle.style.top = `${originY}px`;
-      particle.style.backgroundColor = `hsl(${anime.random(
-        190,
-        230
-      )}, 100%, 70%)`;
-      particle.style.width = `${anime.random(5, 15)}px`;
-      particle.style.height = particle.style.width;
-      celebrationContainer.appendChild(particle);
+    const softColors = ["#A8D0E6", "#F7D4A2", "#84DCC6", "#FFAAA5", "#A3A8E6"];
 
-      anime({
-        targets: particle,
-        translateX: anime.random(-150, 150),
-        translateY: anime.random(-100, 100),
-        scale: [0, 1, 0],
-        opacity: [1, 0],
-        duration: anime.random(800, 1200),
-        easing: "easeOutExpo",
-        complete: () => celebrationContainer.removeChild(particle),
-      });
-    }
+    const timeline = new mojs.Timeline();
 
-    anime({
-      targets: header,
-      scale: [1, 1.05, 1],
-      duration: 600,
-      easing: "easeInOutSine",
+    const mainPop = new mojs.Burst({
+      parent: cardElement,
+      left: originX,
+      top: originY,
+      radius: { 20: 80 },
+      count: 5,
+      children: {
+        shape: "polygon",
+        points: 5,
+        fill: softColors,
+        radius: { 10: 25 },
+        scale: { 1: 0, easing: "cubic.in" },
+        angle: { 0: "rand(-180, 180)" },
+        duration: 1000,
+      },
     });
 
-    // Clean up the main container after the animation is well over
-    setTimeout(() => {
-      if (cardElement.contains(celebrationContainer)) {
-        cardElement.removeChild(celebrationContainer);
-      }
-    }, 2000);
+    const driftingParticles = new mojs.Burst({
+      parent: cardElement,
+      left: originX,
+      top: originY,
+      radius: { 50: 250 },
+      count: 20,
+      angle: { 0: -160 },
+      children: {
+        shape: "circle",
+        fill: softColors,
+        radius: "rand(3, 8)",
+        scale: { 1: 0 },
+        // --- THE FIX IS HERE: REMOVED THE QUOTES ---
+        easing: mojs.easing.bezier(0.1, 1, 0.3, 1),
+        duration: 1800,
+      },
+    });
+
+    const confettiBits = new mojs.Burst({
+      parent: cardElement,
+      left: originX,
+      top: originY,
+      radius: { 10: 100 },
+      count: 12,
+      angle: { "rand(0, 360)": 0 },
+      children: {
+        shape: "rect",
+        fill: "#FFFFFF",
+        radius: "rand(2, 4)",
+        scale: { 1: 0 },
+        stroke: "rgba(0,0,0,0.1)",
+        strokeWidth: 1,
+        duration: 2000,
+      },
+    });
+
+    timeline.add(mainPop, driftingParticles, confettiBits);
+    timeline.play();
   }
 }
