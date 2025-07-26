@@ -14,6 +14,8 @@ class NewFlashCard extends CardComponent {
     this.notDoneCards = new Set();
     this.correctStreak = 0;
     this.messageIndex = 0;
+    this.autoPlay = false;
+    this.autoPlayInterval = null;
   }
 
   render() {
@@ -21,6 +23,8 @@ class NewFlashCard extends CardComponent {
       return this.renderResults();
     }
     const canRecall = this.swipeHistory.length > 0;
+    const completedCount = this.doneCards.size + this.notDoneCards.size;
+    const totalCards = this.data.cards.length;
 
     return `
             <div class="card new-flashcard-set" id="card-${this.data.id}">
@@ -28,17 +32,17 @@ class NewFlashCard extends CardComponent {
                     <div class="new-flashcard-header">
                         <div class="progress-bar-container">
                             <div class="progress-bar-unified">
-                                <div class="progress-bar-unified-fill"></div>
+                                <div class="progress-bar-unified-fill" style="width: ${(totalCards > 0 ? (completedCount / totalCards) * 100 : 0)}%"></div>
                             </div>
                         </div>
                         <div class="header-controls">
-                            <span class="card-counter">${
-                              this.currentIndex + 1
-                            } / ${this.data.cards.length}</span>
                             <button class="recall-btn" ${
                               !canRecall ? "disabled" : ""
                             }><i data-lucide="undo-2"></i></button>
                         </div>
+                        <span class="card-counter">${
+                          completedCount
+                        } / ${totalCards}</span>
                     </div>
 
                     <div class="new-flashcard-stack-container">
@@ -53,6 +57,12 @@ class NewFlashCard extends CardComponent {
                 </div>
                 <div class="swipe-glow left-glow"></div>
                 <div class="swipe-glow right-glow"></div>
+                <button class="autoplay-btn ${this.autoPlay ? 'active' : ''}" id="autoplay-btn-${this.data.id}">
+                    <i data-lucide="${this.autoPlay ? 'pause' : 'play'}"></i>
+                </button>
+                <button class="recall-btn" id="recall-btn-${this.data.id}" ${!canRecall ? "disabled" : ""}>
+                    <i data-lucide="undo-2"></i>
+                </button>
             </div>
         `;
   }
@@ -377,15 +387,39 @@ class NewFlashCard extends CardComponent {
     if (!componentRoot) return;
 
     const cards = componentRoot.querySelectorAll(".new-flashcard-slide");
-    const recallBtn = componentRoot.querySelector(".recall-btn");
+    const recallBtn = document.getElementById(`recall-btn-${this.data.id}`);
+    const autoplayBtn = componentRoot.querySelector(".autoplay-btn");
 
-    recallBtn.addEventListener("click", () => this.recallCard());
+    recallBtn.addEventListener("click", () => {
+      this.stopAutoPlay();
+      this.recallCard();
+    });
+    autoplayBtn.addEventListener("click", () => {
+      // Bounce animation for autoplay button only
+      autoplayBtn.classList.remove('bounce');
+      void autoplayBtn.offsetWidth;
+      autoplayBtn.classList.add('bounce');
+      this.toggleAutoPlay();
+    });
 
+    // Remove global touch handler for stopping auto-play
+    // Only stop auto-play if a card is touched/swiped
     cards.forEach((card, index) => {
       if (index < this.currentIndex) card.style.display = "none";
 
       if (index === this.currentIndex) {
         this.attachInteractiveListeners(card);
+        // Add touch/swipe handler to stop auto-play
+        card.addEventListener("touchstart", () => {
+          if (this.autoPlay) {
+            this.stopAutoPlay();
+          }
+        });
+        card.addEventListener("pointerdown", () => {
+          if (this.autoPlay) {
+            this.stopAutoPlay();
+          }
+        });
       }
     });
   }
@@ -399,7 +433,13 @@ class NewFlashCard extends CardComponent {
     const leftGlow = componentRoot.querySelector(".left-glow");
     const rightGlow = componentRoot.querySelector(".right-glow");
 
+    // Stop autoplay on any card interaction (flip, swipe, etc)
+    const stopAutoplayIfNeeded = () => {
+      if (this.autoPlay) this.stopAutoPlay();
+    };
+
     flipper.addEventListener("click", (e) => {
+      stopAutoplayIfNeeded();
       if (!e.target.closest(".favorite-btn")) {
         flipper.classList.toggle("flipped");
       }
@@ -418,12 +458,14 @@ class NewFlashCard extends CardComponent {
 
     ttsBtnFront.addEventListener("click", (e) => {
       e.stopPropagation(); // Prevent card from flipping
+      stopAutoplayIfNeeded();
       const cardData = this.data.cards[card.dataset.index];
       this.speakText(cardData.front.title);
     });
 
     ttsBtnBack.addEventListener("click", (e) => {
       e.stopPropagation(); // Prevent card from flipping
+      stopAutoplayIfNeeded();
       const cardData = this.data.cards[card.dataset.index];
       this.speakText(cardData.back.description);
     });
@@ -431,6 +473,7 @@ class NewFlashCard extends CardComponent {
     const hammertime = new Hammer(card);
 
     hammertime.on("pan", (ev) => {
+      stopAutoplayIfNeeded();
       flipper.classList.add("is-panning");
       const rotation = ev.deltaX / 20;
       // We are reverting to the original logic that allows diagonal movement
@@ -441,6 +484,7 @@ class NewFlashCard extends CardComponent {
     });
 
     hammertime.on("panend", (ev) => {
+      stopAutoplayIfNeeded();
       flipper.classList.remove("is-panning");
       // rightGlow.style.opacity = 0;
       // leftGlow.style.opacity = 0;
@@ -450,7 +494,7 @@ class NewFlashCard extends CardComponent {
         // SUCCESSFUL SWIPE
         // We REMOVED the lines that set glow opacity to 0 from here.
         // The glow will now stay visible as the card animates away.
-        const moveOutWidth = window.innerWidth;
+        const moveOutWidth = window.innerWidth * 1.5;
         const isDone = ev.deltaX > 0;
         this.currentStatus = isDone;
         const endX = isDone ? moveOutWidth : -moveOutWidth;
@@ -728,7 +772,7 @@ class NewFlashCard extends CardComponent {
       "+=500"
     );
 
-    // Particle burst
+    // Particle burst (original)
     const particleContainer = document.createElement("div");
     particleContainer.classList.add("midway-particle-container");
     container.appendChild(particleContainer);
@@ -814,11 +858,11 @@ class NewFlashCard extends CardComponent {
       if (lastAction.wasNotDone) this.notDoneCards.add(lastAction.cardId);
       else this.notDoneCards.delete(lastAction.cardId);
 
-      this.updateUI(true);
+      this.updateUI(true, true); // pass recallBounce flag
     }
   }
 
-  updateUI(recall = false) {
+  updateUI(recall = false, recallBounce = false) {
     const cardSetElement = document.getElementById(`card-${this.data.id}`);
     if (cardSetElement) {
       const mainAppContainer = document.getElementById("card-display-area");
@@ -826,5 +870,94 @@ class NewFlashCard extends CardComponent {
       lucide.createIcons();
       this.attachEventListeners(recall);
     }
+    this.updateAutoPlayButton(); // Ensure icon is always in sync
+    if (recallBounce) {
+      // Bounce the recall button after re-render
+      const recallBtn = document.getElementById(`recall-btn-${this.data.id}`);
+      if (recallBtn) {
+        recallBtn.classList.remove('bounce');
+        void recallBtn.offsetWidth;
+        recallBtn.classList.add('bounce');
+      }
+    }
+  }
+
+  toggleAutoPlay() {
+    if (this.autoPlay) {
+      this.stopAutoPlay();
+    } else {
+      this.startAutoPlay();
+    }
+  }
+
+  startAutoPlay() {
+    this.autoPlay = true;
+    this.updateAutoPlayButton();
+    this.autoPlayNextCard();
+  }
+
+  stopAutoPlay() {
+    this.autoPlay = false;
+    if (this.autoPlayInterval) {
+      clearTimeout(this.autoPlayInterval);
+      this.autoPlayInterval = null;
+    }
+    this.updateAutoPlayButton();
+  }
+
+  updateAutoPlayButton() {
+    const autoplayBtn = document.querySelector(`#autoplay-btn-${this.data.id}`);
+    if (autoplayBtn) {
+      autoplayBtn.classList.toggle('active', this.autoPlay);
+      // Set icon directly for immediate update
+      autoplayBtn.innerHTML = `<i data-lucide='${this.autoPlay ? 'pause' : 'play'}'></i>`;
+      lucide.createIcons();
+    }
+  }
+
+  autoPlayNextCard() {
+    if (!this.autoPlay || this.currentIndex >= this.data.cards.length) {
+      this.stopAutoPlay();
+      return;
+    }
+
+    const currentCard = document.querySelector(`.new-flashcard-slide[data-index="${this.currentIndex}"]`);
+    if (!currentCard) {
+      this.stopAutoPlay();
+      return;
+    }
+
+    const flipper = currentCard.querySelector('.new-flashcard-flipper');
+    
+    // Check if card is flipped (showing back)
+    const isFlipped = flipper.classList.contains('flipped');
+    
+    if (!isFlipped) {
+      // Flip the card to show back
+      flipper.classList.add('flipped');
+      // Wait 2 seconds then swipe left
+      this.autoPlayInterval = setTimeout(() => {
+        this.autoPlaySwipeLeft(currentCard);
+      }, 2000);
+    } else {
+      // Card is already flipped, swipe left immediately
+      this.autoPlaySwipeLeft(currentCard);
+    }
+  }
+
+  autoPlaySwipeLeft(currentCard) {
+    if (!this.autoPlay) return;
+
+    // Simulate swipe left (not done)
+    const moveOutWidth = window.innerWidth * 1.5;
+    currentCard.style.transform = `translate(${-moveOutWidth}px, 0px) rotate(-10deg)`;
+    
+    // Process the card as not done
+    this.nextCard(false);
+    
+    // Continue with next card after animation
+    setTimeout(() => {
+      this.autoPlayNextCard();
+    }, 400);
   }
 }
