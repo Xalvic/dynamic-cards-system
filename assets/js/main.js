@@ -26,6 +26,58 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.classList.toggle("visible");
   }
 
+  const messsages = [
+    "Loading… because knowledge takes a second to get awesome",
+    "Bringing your learning streak back online!",
+    "Just a moment… making your goals easy to track",
+    "Compiling your achievements in progress… Stay tuned!",
+    "Great things come to those who review—your cards are almost ready.",
+    "Prime your mind… Success is a few seconds away!",
+    "Tracking your progress, building your mastery.",
+  ];
+
+  // --- LOADING PAGE WITH CYCLING MESSAGES ---
+  let loadingOverlay = null;
+  let loadingMsgIndex = 0;
+  let loadingMsgInterval = null;
+
+  function showLoadingMessages() {
+    if (loadingOverlay) return; // Already shown
+    loadingOverlay = document.createElement("div");
+    loadingOverlay.className = "loading-overlay";
+    loadingOverlay.innerHTML = `
+      <div class="cloud cloud-1"></div>
+      <div class="cloud cloud-2"></div>
+      <div class="cloud cloud-3"></div>
+      <div class="cloud cloud-4"></div>
+      <div class="loading-message-container">
+        <div class="loading-message"></div>
+      </div>
+    `;
+    document.body.appendChild(loadingOverlay);
+    loadingMsgIndex = 0;
+    const msgEl = loadingOverlay.querySelector(".loading-message");
+    function showNextMsg() {
+      msgEl.style.opacity = 0;
+      setTimeout(() => {
+        msgEl.textContent = messsages[loadingMsgIndex];
+        msgEl.style.opacity = 1;
+        loadingMsgIndex = (loadingMsgIndex + 1) % messsages.length;
+      }, 400);
+    }
+    showNextMsg();
+    loadingMsgInterval = setInterval(showNextMsg, 2200);
+  }
+
+  function hideLoadingMessages() {
+    if (loadingOverlay) {
+      clearInterval(loadingMsgInterval);
+      loadingMsgInterval = null;
+      document.body.removeChild(loadingOverlay);
+      loadingOverlay = null;
+    }
+  }
+
   // 1. Load and display initial notifications
   const notifications = ApiService.getNotifications();
   notificationService.renderNotifications(notifications);
@@ -38,6 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const actionId = li.dataset.actionId;
 
       cardDisplayArea.innerHTML = `<div class="placeholder"><h2>Loading...</h2></div>`;
+      showLoadingMessages();
       markNotificationAsActive(li);
       if (window.innerWidth < 768) {
         toggleNotificationPanel();
@@ -45,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const cardData = await ApiService.fetchCardData(actionId);
 
+      hideLoadingMessages();
       if (cardData) {
         displayCard(cardData);
       } else {

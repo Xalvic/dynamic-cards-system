@@ -4,73 +4,95 @@ class Checklist extends CardComponent {
     this.completedItems = new Map(
       data.items
         .filter((item) => item.completed)
-        .map((item) => [item.id, Date.now()]) // Store with a timestamp
+        .map((item) => [item.id, Date.now()])
     );
+    this.expandedItemId = null; // Tracks the currently expanded item
     this.completionSound = new Audio("../../../assets/sounds/sucess.mp3");
+    this.activeTimers = new Map();
   }
+
   resetState() {
     this.completedItems.clear();
-    this.updateUI(); // This will re-render and clear the view
+    this.expandedItemId = null;
+    this.updateUI(); // Re-render to clear the view
   }
-  formatTimestamp(timestamp) {
-    return new Date(timestamp).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
+
   render() {
     const totalItems = this.data.items.length;
     const completedCount = this.completedItems.size;
+    const remainingCount = totalItems - completedCount;
     const progress = totalItems > 0 ? (completedCount / totalItems) * 100 : 0;
 
     return `
-            <div class="card checklist" id="card-${this.data.id}">
-                <div class="card-content">
-                    <h2 class="card-title">${this.data.title}</h2>
-                    <p class="card-subtitle">${this.data.subtitle}</p>
+      <div class="card checklist" id="card-${this.data.id}">
+        <div class="card-content">
+          <h2 class="card-title">${this.data.title}</h2>
+          <p class="card-subtitle">${this.data.subtitle}</p>
 
-                    <div class="checklist-progress-header">
-                        <div class="progress-header-top">
-                            <i data-lucide="book-open"></i>
-                            <span>Development Progress</span>
-                            <span class="progress-counter">${completedCount}/${totalItems}</span>
-                            <button class="reset-btn"><i data-lucide="rotate-cw"></i></button>
-                        </div>
-                        <div class="progress-bar-bg">
-                            <div class="progress-bar-fg" style="width: ${progress}%"></div>
-                        </div>
-                        <div class="progress-header-bottom">
-                            <span>${Math.round(progress)}% Complete</span>
-                            <span>Building foundational understanding</span>
-                        </div>
-                    </div>
-
-                    <ul class="checklist-list">
-                        ${this.data.items
-                          .map((item) => this.renderListItem(item))
-                          .join("")}
-                    </ul>
-                </div>
+          <div class="checklist-progress-header">
+            <button class="reset-btn"><i data-lucide="rotate-cw"></i></button>
+            <div class="header-stats">
+              <div class="stat-box">
+                <span class="stat-value" id="stat-taken-${
+                  this.data.id
+                }">${completedCount}</span>
+                <span class="stat-label">Actions Taken</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-value" id="stat-remaining-${
+                  this.data.id
+                }">${remainingCount}</span>
+                <span class="stat-label">Remaining</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-value" id="stat-progress-${
+                  this.data.id
+                }">${Math.round(progress)}%</span>
+                <span class="stat-label">Progress</span>
+              </div>
             </div>
-        `;
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fg" style="width: ${progress}%"></div>
+            </div>
+          </div>
+          <ul class="task-list">
+            ${this.data.items.map((item) => this.renderListItem(item)).join("")}
+          </ul>
+        </div>
+      </div>
+    `;
   }
 
   renderListItem(item) {
     const isCompleted = this.completedItems.has(item.id);
-    const checkIcon = isCompleted ? '<i data-lucide="check"></i>' : "";
+    const isExpanded = this.expandedItemId === item.id;
 
     return `
-      <li class="checklist-item ${
-        isCompleted ? "completed" : ""
-      }" data-item-id="${item.id}">
-          <div class="item-fill-bg"></div>
-          <div class="custom-checkbox">
-              ${checkIcon}
+      <li class="task-item ${isCompleted ? "completed" : ""} ${
+      isExpanded ? "expanded" : ""
+    }" data-item-id="${item.id}">
+        <div class="task-fill-bg"></div>
+        <div class="task-completed-overlay">
+            <i data-lucide="check-circle-2"></i>
+            <span>Completed</span>
+        </div>
+        <div class="task-header">
+          <div class="task-info">
+            <h3 class="task-title">${item.id}</h3>
+            <p class="task-text">${item.text}</p>
           </div>
-          <div class="item-content">
-              <label>${item.text}</label>
-              <span class="complete-chip"></span>
-          </div>
+          ${
+            item.timeToComplete
+              ? `<div class="time-chip">${item.timeToComplete}</div>`
+              : ""
+          }
+        </div>
+        <div class="task-actions">
+          <div class="timer-display" data-timer-for="${item.id}">00:00</div>
+          <button class="action-btn timer-btn"><i data-lucide="timer"></i> <span>Start Timer<span/></button>
+          <button class="action-btn schedule-btn"><i data-lucide="calendar-plus"></i> Schedule</button>
+          <button class="action-btn complete-btn"><i data-lucide="check"></i> Mark Complete</button>
+        </div>
       </li>
     `;
   }
@@ -79,235 +101,247 @@ class Checklist extends CardComponent {
     const componentRoot = document.getElementById(`card-${this.data.id}`);
     if (!componentRoot) return;
 
-    // Listen for clicks on the list itself
-    componentRoot
-      .querySelector(".checklist-list")
-      .addEventListener("click", (e) => {
-        const item = e.target.closest(".checklist-item");
-        if (item) {
-          this.toggleItemState(item.dataset.itemId);
-        }
-      });
+    // Event delegation for all task-related clicks
+    componentRoot.querySelector(".task-list").addEventListener("click", (e) => {
+      const taskItem = e.target.closest(".task-item");
+      if (!taskItem || taskItem.classList.contains("completed")) return;
 
-    // Add confirmation to the reset button
+      const itemId = taskItem.dataset.itemId;
+
+      // Handle clicks on action buttons
+      if (e.target.closest(".action-btn")) {
+        if (e.target.closest(".complete-btn")) {
+          this.markItemComplete(itemId);
+        } else if (e.target.closest(".timer-btn")) {
+          this.toggleTimer(itemId);
+        } else if (e.target.closest(".schedule-btn")) {
+          this.scheduleItem(itemId);
+        }
+      } else {
+        // Handle click on the main task body to expand/collapse
+        this.toggleTaskExpansion(itemId);
+      }
+    });
+
+    // Reset button listener
     componentRoot.querySelector(".reset-btn").addEventListener("click", (e) => {
       e.stopPropagation();
       if (confirm("Are you sure you want to reset your progress?")) {
-        this.completedItems.clear();
-        this.updateUI(); // Full update is fine for a total reset
+        this.resetState();
       }
     });
   }
-  toggleItemState(itemId) {
-    if (this.completedItems.has(itemId)) {
-      this.completedItems.delete(itemId);
+  stopTimer(itemId) {
+    // Check if a timer is running for this item
+    if (this.activeTimers.has(itemId)) {
+      const timerData = this.activeTimers.get(itemId);
+      clearInterval(timerData.intervalId); // Stop the interval
+      this.activeTimers.delete(itemId); // Remove from active timers
+
+      // Also reset the button's UI
+      const taskItem = document.querySelector(
+        `.task-item[data-item-id="${itemId}"]`
+      );
+      if (taskItem) {
+        taskItem.classList.remove("timer-active");
+        const timerBtn = taskItem.querySelector(".timer-btn span");
+        if (timerBtn) timerBtn.textContent = "Start Timer";
+        const timerDisplay = taskItem.querySelector(".timer-display");
+        if (timerDisplay) timerDisplay.textContent = "00:00";
+      }
+    }
+  }
+  toggleTimer(itemId) {
+    const taskItem = document.querySelector(
+      `.task-item[data-item-id="${itemId}"]`
+    );
+    const timerBtn = taskItem.querySelector(".timer-btn span");
+    const timerDisplay = taskItem.querySelector(".timer-display");
+
+    // Check if a timer is already running for this item
+    if (this.activeTimers.has(itemId)) {
+      // --- STOP THE TIMER ---
+      this.stopTimer(itemId);
     } else {
-      // When adding, also store the current time as the timestamp
-      this.completedItems.set(itemId, Date.now());
+      // --- START THE TIMER ---
+      taskItem.classList.add("timer-active");
+      timerBtn.textContent = "Stop Timer";
+
+      const startTime = Date.now();
+
+      const intervalId = setInterval(() => {
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        const minutes = String(Math.floor(elapsedTime / 60)).padStart(2, "0");
+        const seconds = String(elapsedTime % 60).padStart(2, "0");
+        timerDisplay.textContent = `${minutes}:${seconds}`;
+      }, 1000);
+
+      // Store the timer's data so we can stop it later
+      this.activeTimers.set(itemId, { intervalId, startTime });
+    }
+  }
+  async scheduleItem(itemId) {
+    const itemData = this.data.items.find((i) => i.id === itemId);
+    if (!itemData) return;
+
+    // 1. Get the desired date and time from the user
+    // const scheduleTime = prompt(
+    //   `When do you want to schedule "${itemData.text}"?\n\ne.g., "tomorrow at 3pm" or "Aug 15 at 10:00"`
+    // );
+
+    // if (!scheduleTime) return;
+
+    // --- IMPORTANT ---
+    // The next step is to convert the user's text (e.g., "tomorrow at 3pm")
+    // into a specific date. In a real app, you would use a date-parsing library
+    // like `date-fns` or an API call.
+    // For this example, we'll simulate it by creating a date for the next day.
+
+    const now = new Date();
+    const eventDate = new Date(now);
+    eventDate.setDate(now.getDate() + 1); // Set to tomorrow
+    eventDate.setHours(15, 0, 0, 0); // Set to 3:00 PM
+
+    const startTime = eventDate;
+    // Set end time 1 hour later for this example
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+    // 2. Format dates into the required Google Calendar format (YYYYMMDDTHHMMSSZ)
+    // The 'Z' indicates UTC time.
+    const formatDate = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, "");
+
+    // 3. Build the Google Calendar URL
+    const params = new URLSearchParams();
+    params.append("action", "TEMPLATE");
+    params.append("text", itemData.text); // Event Title
+    params.append(
+      "details",
+      `Task ID: ${itemData.id}\nEstimated Time: ${
+        itemData.timeToComplete || "Not set"
+      }`
+    );
+    params.append("dates", `${formatDate(startTime)}/${formatDate(endTime)}`);
+    params.append("ctz", "UTC"); // Specify Timezone as UTC
+
+    const googleCalendarUrl = `https://www.google.com/calendar/render?${params.toString()}`;
+
+    // 4. Open the link in a new tab. This triggers the app on mobile.
+    window.open(googleCalendarUrl, "_blank");
+  }
+  toggleTaskExpansion(itemId) {
+    const previouslyExpandedId = this.expandedItemId;
+
+    // Collapse the previously open item if there is one
+    if (previouslyExpandedId && previouslyExpandedId !== itemId) {
+      const prevItemEl = document.querySelector(
+        `.task-item[data-item-id="${previouslyExpandedId}"]`
+      );
+      if (prevItemEl) prevItemEl.classList.remove("expanded");
     }
 
-    this.updateItemUI(itemId);
-    this.updateProgressUI();
+    // Toggle the current item
+    const currentItemEl = document.querySelector(
+      `.task-item[data-item-id="${itemId}"]`
+    );
+    if (currentItemEl) {
+      const isNowExpanded = currentItemEl.classList.toggle("expanded");
+      this.expandedItemId = isNowExpanded ? itemId : null;
+    }
+  }
 
-    if (
-      this.completedItems.size === this.data.items.length &&
-      this.data.items.length > 0
-    ) {
+  markItemComplete(itemId) {
+    if (this.completedItems.has(itemId)) return;
+    this.stopTimer(itemId);
+
+    this.completedItems.set(itemId, Date.now());
+    const itemElement = document.querySelector(
+      `.task-item[data-item-id="${itemId}"]`
+    );
+    if (!itemElement) return;
+    // Collapse the actions before animating
+    itemElement.classList.remove("expanded");
+    this.expandedItemId = null;
+
+    const fillBg = itemElement.querySelector(".task-fill-bg");
+    const completedOverlay = itemElement.querySelector(
+      ".task-completed-overlay"
+    );
+
+    anime
+      .timeline({
+        easing: "easeOutExpo",
+        duration: 800,
+        complete: () => {
+          // After animation, add the final completed class which disables pointer events
+          itemElement.classList.add("completed");
+        },
+      })
+      .add({
+        // The energy fill animation
+        targets: fillBg,
+        width: "100%",
+        duration: 600,
+      })
+      .add(
+        {
+          // Fade in the "Completed" overlay
+          targets: completedOverlay,
+          opacity: [0, 1],
+          scale: [0.8, 1],
+          easing: "easeOutElastic(1, .8)",
+          duration: 700,
+        },
+        "-=400"
+      ); // Overlap with the fill animation
+
+    this.updateProgressUI();
+    // this.addTapAnimation(itemElement);
+    if (this.completedItems.size === this.data.items.length) {
+      document.getElementById("card-display-area").scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
       this.triggerCompletionCelebration();
     }
   }
 
-  updateItemUI(itemId) {
-    const itemElement = document.querySelector(
-      `.checklist-item[data-item-id="${itemId}"]`
-    );
-    if (!itemElement) return;
-
-    const isCompleted = this.completedItems.has(itemId);
-    const fillBg = itemElement.querySelector(".item-fill-bg");
-    const checkbox = itemElement.querySelector(".custom-checkbox");
-    const chip = itemElement.querySelector(".complete-chip");
-
-    const computedStyle = getComputedStyle(document.body);
-    const successColor = computedStyle
-      .getPropertyValue("--accent-success-dark")
-      .trim();
-    const defaultBorderColor = computedStyle
-      .getPropertyValue("--border-color")
-      .trim();
-
-    const timeline = anime.timeline({
-      duration: 600, // Slightly longer duration for a smoother feel
-      easing: "easeOutQuint",
-    });
-
-    if (isCompleted) {
-      itemElement.classList.add("completed");
-      checkbox.innerHTML = '<i data-lucide="check"></i>';
-      lucide.createIcons();
-      const checkIcon = checkbox.querySelector("svg");
-
-      // Trigger the particle burst
-      this.triggerFillParticles(itemElement);
-
-      timeline
-        .add({
-          // 1. Animate the background fill
-          targets: fillBg,
-          width: "100%",
-        })
-        .add(
-          {
-            // 2. Animate the 3D checkbox press
-            targets: checkbox,
-            backgroundColor: successColor,
-            borderColor: successColor,
-            borderBottomWidth: "2px",
-            transform: "translateY(2px)",
-            duration: 200,
-          },
-          "-=600"
-        ) // Overlap completely with the fill
-        .add(
-          {
-            // 3. Animate the checkmark icon pop
-            targets: checkIcon,
-            scale: [0, 1],
-            rotate: "360deg",
-            easing: "spring(1, 80, 10, 0)", // A bouncy spring animation
-          },
-          "-=450"
-        )
-        .add(
-          {
-            begin: () => {
-              const timestamp = this.completedItems.get(itemId);
-              chip.textContent = `Done: ${this.formatTimestamp(timestamp)}`;
-            },
-          },
-          "-=300"
-        );
-    } else {
-      // UN-CHECKING
-      itemElement.classList.remove("completed");
-      this.triggerUncheckParticles(checkbox); // Keep the un-check poof
-
-      timeline
-        .add({
-          targets: fillBg, // Animate the fill away
-          width: "0%",
-          easing: "easeInQuint",
-        })
-        .add(
-          {
-            // Release the 3D checkbox
-            targets: checkbox,
-            backgroundColor: "#FFFFFF",
-            borderColor: defaultBorderColor,
-            borderBottomWidth: "4px",
-            transform: "translateY(0px)",
-            duration: 200,
-          },
-          "-=600"
-        )
-        .add(
-          {
-            // Hide the checkmark icon
-            targets: checkbox.querySelector("svg"),
-            scale: 0,
-            rotate: "-360deg",
-            easing: "easeInBack",
-            duration: 300,
-            complete: () => {
-              checkbox.innerHTML = "";
-            },
-          },
-          "-=600"
-        );
-    }
-  }
   updateProgressUI() {
     const componentRoot = document.getElementById(`card-${this.data.id}`);
     if (!componentRoot) return;
 
     const totalItems = this.data.items.length;
     const completedCount = this.completedItems.size;
+    const remainingCount = totalItems - completedCount;
     const progress = totalItems > 0 ? (completedCount / totalItems) * 100 : 0;
 
-    const counter = componentRoot.querySelector(".progress-counter");
-    const progressBar = componentRoot.querySelector(".progress-bar-fg");
-    const percentageText = componentRoot.querySelector(
-      ".progress-header-bottom span:first-child"
+    // Selectors for the new stat values
+    const statTaken = componentRoot.querySelector(
+      `#stat-taken-${this.data.id}`
     );
+    const statRemaining = componentRoot.querySelector(
+      `#stat-remaining-${this.data.id}`
+    );
+    const statProgress = componentRoot.querySelector(
+      `#stat-progress-${this.data.id}`
+    );
+    const progressBar = componentRoot.querySelector(".progress-bar-fg");
 
-    if (counter) counter.textContent = `${completedCount}/${totalItems}`;
-    if (progressBar) progressBar.style.width = `${progress}%`;
-    if (percentageText)
-      percentageText.textContent = `${Math.round(progress)}% Complete`;
-  }
-  triggerFillParticles(itemElement) {
-    const container = document.createElement("div");
-    container.classList.add("fill-particle-container");
-    itemElement.appendChild(container);
+    // Update the text content of the new stat boxes
+    if (statTaken) statTaken.textContent = completedCount;
+    if (statRemaining) statRemaining.textContent = remainingCount;
+    if (statProgress) statProgress.textContent = `${Math.round(progress)}%`;
 
-    for (let i = 0; i < 20; i++) {
-      const particle = document.createElement("div");
-      particle.classList.add("fill-particle");
-      container.appendChild(particle);
-
+    // Animate the progress bar width
+    if (progressBar) {
       anime({
-        targets: particle,
-        translateX: [0, anime.random(60, 120)], // Move horizontally
-        translateY: [0, anime.random(-20, 20)], // Slight vertical spread
-        scale: [anime.random(0.5, 1.2), 0],
-        opacity: [1, 0],
-        duration: anime.random(400, 700),
+        targets: progressBar,
+        width: `${progress}%`,
+        duration: 600,
         easing: "easeOutQuad",
-        complete: () => container.removeChild(particle),
       });
     }
-
-    setTimeout(() => {
-      if (itemElement.contains(container)) {
-        itemElement.removeChild(container);
-      }
-    }, 1000);
   }
-  triggerUncheckParticles(checkboxElement) {
-    const container = document.createElement("div");
-    container.classList.add("particle-container");
-    checkboxElement.appendChild(container);
 
-    for (let i = 0; i < 15; i++) {
-      const particle = document.createElement("div");
-      particle.classList.add("uncheck-particle");
-      container.appendChild(particle);
-
-      anime({
-        targets: particle,
-        translateX: anime.random(-30, 30),
-        translateY: anime.random(-30, 30),
-        scale: [anime.random(0.5, 1), 0],
-        opacity: [1, 0],
-        duration: anime.random(400, 600),
-        easing: "easeOutExpo",
-        complete: () => {
-          // Check if the particle still exists before removing
-          if (container.contains(particle)) {
-            container.removeChild(particle);
-          }
-        },
-      });
-    }
-
-    // Clean up the container after a short delay
-    setTimeout(() => {
-      // Check if the container still exists before removing
-      if (checkboxElement.contains(container)) {
-        checkboxElement.removeChild(container);
-      }
-    }, 1000);
-  }
   // The main updateUI method is now only needed for major resets
   updateUI() {
     const cardSetElement = document.getElementById(`card-${this.data.id}`);
@@ -318,7 +352,40 @@ class Checklist extends CardComponent {
       this.attachEventListeners();
     }
   }
+  addTapAnimation(el) {
+    const itemDim = el.getBoundingClientRect(),
+      itemSize = {
+        x: itemDim.right - itemDim.left,
+        y: itemDim.bottom - itemDim.top,
+      },
+      shapes = ["line", "zigzag"],
+      colors = ["#2FB5F3", "#FF0A47", "#FF0AC2", "#47FF0A"];
+    const chosenC = Math.floor(Math.random() * colors.length),
+      chosenS = Math.floor(Math.random() * shapes.length);
+    const burst = new mojs.Burst({
+      left: itemDim.left + itemSize.x / 2,
+      top: itemDim.top + itemSize.y / 2,
+      radiusX: itemSize.x,
+      radiusY: itemSize.y,
+      count: 8,
 
+      children: {
+        shape: shapes[chosenS],
+        radius: 10,
+        scale: { 0.8: 1 },
+        fill: "none",
+        points: 7,
+        stroke: colors[chosenC],
+        strokeDasharray: "100%",
+        strokeDashoffset: { "-100%": "100%" },
+        duration: 350,
+        delay: 100,
+        easing: "quad.out",
+        isShowEnd: false,
+      },
+    });
+    burst.play();
+  }
   triggerCompletionCelebration() {
     this.completionSound.play();
     if (typeof mojs === "undefined") {

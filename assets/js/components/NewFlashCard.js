@@ -32,17 +32,17 @@ class NewFlashCard extends CardComponent {
                     <div class="new-flashcard-header">
                         <div class="progress-bar-container">
                             <div class="progress-bar-unified">
-                                <div class="progress-bar-unified-fill" style="width: ${(totalCards > 0 ? (completedCount / totalCards) * 100 : 0)}%"></div>
+                                <div class="progress-bar-unified-fill" style="width: ${
+                                  totalCards > 0
+                                    ? (completedCount / totalCards) * 100
+                                    : 0
+                                }%"></div>
                             </div>
                         </div>
                         <div class="header-controls">
-                            <button class="recall-btn" ${
-                              !canRecall ? "disabled" : ""
-                            }><i data-lucide="undo-2"></i></button>
+                            <!-- Removed duplicate recall button from header-controls -->
                         </div>
-                        <span class="card-counter">${
-                          completedCount
-                        } / ${totalCards}</span>
+                        <span class="card-counter">${completedCount} / ${totalCards}</span>
                     </div>
 
                     <div class="new-flashcard-stack-container">
@@ -57,10 +57,14 @@ class NewFlashCard extends CardComponent {
                 </div>
                 <div class="swipe-glow left-glow"></div>
                 <div class="swipe-glow right-glow"></div>
-                <button class="autoplay-btn ${this.autoPlay ? 'active' : ''}" id="autoplay-btn-${this.data.id}">
-                    <i data-lucide="${this.autoPlay ? 'pause' : 'play'}"></i>
+                <button class="autoplay-btn ${
+                  this.autoPlay ? "active" : ""
+                }" id="autoplay-btn-${this.data.id}">
+                    <i data-lucide="${this.autoPlay ? "pause" : "play"}"></i>
                 </button>
-                <button class="recall-btn" id="recall-btn-${this.data.id}" ${!canRecall ? "disabled" : ""}>
+                <button class="recall-btn" id="recall-btn-${this.data.id}" ${
+      !canRecall ? "disabled" : ""
+    }>
                     <i data-lucide="undo-2"></i>
                 </button>
             </div>
@@ -110,9 +114,6 @@ class NewFlashCard extends CardComponent {
                       <p>${card.back.description}</p>
                   </div>
                   <button class="tts-btn"><i data-lucide="volume-2"></i></button>
-                  <button class="favorite-btn ${
-                    isFavorited ? "favorited" : ""
-                  }"><i data-lucide="heart"></i></button>
               </div>
           </div>
       </div>
@@ -261,7 +262,7 @@ class NewFlashCard extends CardComponent {
   }
 
   getIconName(apiIcon) {
-    console.log(apiIcon);
+    // console.log(apiIcon);
     return apiIcon;
     if (typeof apiIcon !== "string" || !apiIcon) {
       return "box";
@@ -276,7 +277,7 @@ class NewFlashCard extends CardComponent {
     return iconMap[apiIcon.trim().toLowerCase()] || "box";
   }
   getTypeIconName(apiIcon) {
-    console.log(apiIcon);
+    // console.log(apiIcon);
     if (typeof apiIcon !== "string" || !apiIcon) {
       return "box";
     }
@@ -346,7 +347,7 @@ class NewFlashCard extends CardComponent {
     const card = cards[this.currentIndex];
     if (!card) return;
 
-    console.log(this.currentStatus);
+    // console.log(this.currentStatus);
 
     // Optionally: Set starting position if recalling from off-screen
     // Uncomment if needed based on your logic
@@ -390,15 +391,52 @@ class NewFlashCard extends CardComponent {
     const recallBtn = document.getElementById(`recall-btn-${this.data.id}`);
     const autoplayBtn = componentRoot.querySelector(".autoplay-btn");
 
+    function addTapAnimation(el) {
+      const itemDim = el.getBoundingClientRect(),
+        itemSize = {
+          x: itemDim.right - itemDim.left,
+          y: itemDim.bottom - itemDim.top,
+        },
+        shapes = ["line", "zigzag"],
+        colors = ["#2FB5F3", "#FF0A47", "#FF0AC2", "#47FF0A"];
+      const chosenC = Math.floor(Math.random() * colors.length),
+        chosenS = Math.floor(Math.random() * shapes.length);
+      const burst = new mojs.Burst({
+        left: itemDim.left + itemSize.x / 2,
+        top: itemDim.top + itemSize.y / 2,
+        radiusX: itemSize.x,
+        radiusY: itemSize.y,
+        count: 8,
+
+        children: {
+          shape: shapes[chosenS],
+          radius: 10,
+          scale: { 0.8: 1 },
+          fill: "none",
+          points: 7,
+          stroke: colors[chosenC],
+          strokeDasharray: "100%",
+          strokeDashoffset: { "-100%": "100%" },
+          duration: 350,
+          delay: 100,
+          easing: "quad.out",
+          isShowEnd: false,
+        },
+      });
+      burst.play();
+    }
+
     recallBtn.addEventListener("click", () => {
+      addTapAnimation(recallBtn);
       this.stopAutoPlay();
       this.recallCard();
     });
     autoplayBtn.addEventListener("click", () => {
+      addTapAnimation(autoplayBtn);
       // Bounce animation for autoplay button only
-      autoplayBtn.classList.remove('bounce');
+      autoplayBtn.classList.remove("bounce");
       void autoplayBtn.offsetWidth;
-      autoplayBtn.classList.add('bounce');
+      autoplayBtn.classList.add("bounce");
       this.toggleAutoPlay();
     });
 
@@ -526,7 +564,7 @@ class NewFlashCard extends CardComponent {
     if (closeBtn) {
       closeBtn.addEventListener("click", () => {
         document.getElementById("card-display-area").innerHTML =
-          '<div class="placeholder"><i data-lucide="mouse-pointer-click"></i><h2>Welcome!</h2><p>Open the menu to select a card.</p></div>';
+          '<div class="placeholder"><i data-lucide="mouse-pointer-click"></i><h2>Welcome!</h2><p>Open the menu to select a user action.</p></div>';
         lucide.createIcons();
       });
     }
@@ -641,7 +679,7 @@ class NewFlashCard extends CardComponent {
     const originX =
       progressRect.left - headerRect.left + fillElement.offsetWidth;
     const originY = progressRect.top - headerRect.top + progressRect.height / 2;
-    console.log(originY);
+    // console.log(originY);
     let circleOriginY = originY - 15;
     // --- NEW: Create and animate the circular pulse ---
     const pulse = document.createElement("div");
@@ -871,13 +909,17 @@ class NewFlashCard extends CardComponent {
       this.attachEventListeners(recall);
     }
     this.updateAutoPlayButton(); // Ensure icon is always in sync
+    // Enable/disable floating recall button based on swipeHistory
+    const recallBtn = document.getElementById(`recall-btn-${this.data.id}`);
+    if (recallBtn) {
+      recallBtn.disabled = this.swipeHistory.length === 0;
+    }
     if (recallBounce) {
       // Bounce the recall button after re-render
-      const recallBtn = document.getElementById(`recall-btn-${this.data.id}`);
       if (recallBtn) {
-        recallBtn.classList.remove('bounce');
+        recallBtn.classList.remove("bounce");
         void recallBtn.offsetWidth;
-        recallBtn.classList.add('bounce');
+        recallBtn.classList.add("bounce");
       }
     }
   }
@@ -908,9 +950,11 @@ class NewFlashCard extends CardComponent {
   updateAutoPlayButton() {
     const autoplayBtn = document.querySelector(`#autoplay-btn-${this.data.id}`);
     if (autoplayBtn) {
-      autoplayBtn.classList.toggle('active', this.autoPlay);
+      autoplayBtn.classList.toggle("active", this.autoPlay);
       // Set icon directly for immediate update
-      autoplayBtn.innerHTML = `<i data-lucide='${this.autoPlay ? 'pause' : 'play'}'></i>`;
+      autoplayBtn.innerHTML = `<i data-lucide='${
+        this.autoPlay ? "pause" : "play"
+      }'></i>`;
       lucide.createIcons();
     }
   }
@@ -921,20 +965,22 @@ class NewFlashCard extends CardComponent {
       return;
     }
 
-    const currentCard = document.querySelector(`.new-flashcard-slide[data-index="${this.currentIndex}"]`);
+    const currentCard = document.querySelector(
+      `.new-flashcard-slide[data-index="${this.currentIndex}"]`
+    );
     if (!currentCard) {
       this.stopAutoPlay();
       return;
     }
 
-    const flipper = currentCard.querySelector('.new-flashcard-flipper');
-    
+    const flipper = currentCard.querySelector(".new-flashcard-flipper");
+
     // Check if card is flipped (showing back)
-    const isFlipped = flipper.classList.contains('flipped');
-    
+    const isFlipped = flipper.classList.contains("flipped");
+
     if (!isFlipped) {
       // Flip the card to show back
-      flipper.classList.add('flipped');
+      flipper.classList.add("flipped");
       // Wait 2 seconds then swipe left
       this.autoPlayInterval = setTimeout(() => {
         this.autoPlaySwipeLeft(currentCard);
@@ -951,10 +997,10 @@ class NewFlashCard extends CardComponent {
     // Simulate swipe left (not done)
     const moveOutWidth = window.innerWidth * 1.5;
     currentCard.style.transform = `translate(${-moveOutWidth}px, 0px) rotate(-10deg)`;
-    
+
     // Process the card as not done
     this.nextCard(false);
-    
+
     // Continue with next card after animation
     setTimeout(() => {
       this.autoPlayNextCard();

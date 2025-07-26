@@ -64,8 +64,7 @@ const ApiService = {
         },
         back: {
           title: "",
-          description:
-            card.content,
+          description: card.content,
         },
         icon: card.icon, // Pass the icon name
         type: card.type, // Pass the icon name
@@ -85,23 +84,23 @@ const ApiService = {
       //   title: "Quiz: Deep Work Principles",
       //   actionId: "deepWorkQuiz",
       // },
-      // {
-      //   id: "notif_api",
-      //   type: "flashcards",
-      //   title: "Flashcards: Drawing Tips (Grid)",
-      //   actionId: "drawingFlashcards",
-      // },
       {
         id: "notif_new_api",
         type: "new-flashcards",
-        title: "Flashcards: Drawing Tips (Slider)",
+        title: "MOCK DATA: Flashcards",
         actionId: "newDrawingFlashcards",
       },
       {
         id: "notif3",
         type: "checklist",
-        title: "Checklist: Deep Work Setup",
+        title: "MOCK DATA: Checklist",
         actionId: "deepWorkChecklist",
+      },
+      {
+        id: "notif_api",
+        type: "flashcards",
+        title: "ACD API CALL TEST",
+        actionId: "drawingFlashcards",
       },
     ];
   },
@@ -162,6 +161,16 @@ const ApiService = {
           {
             id: "item3",
             text: "Install a website blocker (Cold Turkey, Freedom) and block social media during work hours.",
+            completed: false,
+          },
+          {
+            id: "item4",
+            text: "Create a shutdown ritual: write tomorrow's priorities, close laptop, and say 'schedule shutdown complete'.",
+            completed: false,
+          },
+          {
+            id: "item5",
+            text: "Track your deep work hours this week using a simple timer or app like Toggl.",
             completed: false,
           },
         ],

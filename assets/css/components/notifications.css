@@ -1,22 +1,22 @@
 /* --- FLOATING MENU & NOTIFICATION PANEL --- */
 .floating-menu-btn {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  top: 0;
+  left: 0;
   z-index: 100;
   background-color: rgba(26, 26, 46, 0.7);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: 0 0 50% 0;
   font-size: 1.2rem;
   cursor: pointer;
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   transition: background-color 0.3s;
 }
-.floating-menu-btn:hover {
+.floating-menu-btn:active {
   background-color: var(--primary-surface-color);
 }
 body.light-theme .floating-menu-btn {
@@ -49,7 +49,12 @@ body.light-theme .floating-menu-btn:hover {
   border-bottom: 1px solid var(--border-color);
 }
 .notification-header h2 {
+  display: flex;
+  align-items: center;
   font-size: 1.1rem;
+}
+.notification-header h2 svg {
+  margin-right: 0.5rem;
 }
 .icon-btn {
   background: none;

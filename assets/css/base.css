@@ -2,9 +2,9 @@
 
 /* --- THEME VARIABLES --- */
 :root {
-  --bg-color: #080818;
+  --bg-color: hsl(210, 25%, 10%);
   --primary-surface-color: #1a1a2e;
-  --secondary-surface-color: #16213e;
+  --secondary-surface-color: hsl(210, 20%, 15%);
   --text-primary: #e0e0e0;
   --text-secondary: #a0a0c0;
   --accent-primary: #00aaff;
@@ -12,12 +12,18 @@
   --accent-success: #2dce89;
   --border-color: #2a2a4a;
   --accent-primary-glow: rgba(0, 170, 255, 0.15);
+  --body-gradient: radial-gradient(at 50% 15%, white 0px, transparent 50%),
+    radial-gradient(at 10% 25%, hsla(207, 100%, 76%, 1) 0px, transparent 50%),
+    radial-gradient(at 90% 45%, hsla(191, 100%, 76%, 1) 0px, transparent 50%),
+    radial-gradient(at 20% 65%, hsla(193, 100%, 93%, 1) 0px, transparent 50%),
+    radial-gradient(at 85% 90%, hsla(195, 100%, 92%, 1) 0px, transparent 50%),
+    radial-gradient(at 15% 95%, hsla(199, 100%, 62%, 1) 0px, transparent 50%);
 }
 
 body.light-theme {
-  --bg-color: #f8f9fa;
+  --bg-color: hsl(210, 100%, 97%);
   --primary-surface-color: #ffffff;
-  --secondary-surface-color: #f1f5f9;
+  --secondary-surface-color: hsl(195, 100%, 93%);
   --text-primary: #0f172a;
   --text-secondary: #64748b;
   --accent-primary: #3b82f6;
@@ -25,13 +31,21 @@ body.light-theme {
   --accent-success: #22c55e;
   --accent-success-dark: #15803d;
   --border-color: #e2e8f0;
-  --accent-primary-glow: rgba(59, 130, 246, 0.1);
+  --accent-primary-glow: rgba(0, 170, 255, 0.15);
   --accent-secondary-rgb: 239, 68, 68; /* RGB for the modern red */
   --accent-success-rgb: 34, 197, 94; /* RGB for the modern green */
   --subtle-accent-surface: #f5f3ff;
   --accent-flame: #ffc300; /* Vibrant Yellow/Orange */
   --accent-flame-light: #ffd60a; /* Lighter Yellow */
   --accent-flame-rgb: 255, 195, 0;
+  --body-gradient: radial-gradient(
+      at 50% 0%,
+      hsl(195, 100%, 93%) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 10% 40%, hsl(199, 100%, 82%) 0px, transparent 60%),
+    radial-gradient(at 90% 60%, hsl(191, 100%, 86%) 0px, transparent 60%),
+    radial-gradient(at 50% 100%, hsl(197, 100%, 87%) 0px, transparent 70%);
 }
 
 /* --- BASE & LAYOUT --- */
@@ -59,18 +73,10 @@ body {
     var(--secondary-surface-color),
     var(--bg-color)
   );
+  /* background-image: var(--body-gradient); */
 }
-body::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
-  opacity: 0.03;
-  z-index: 0;
-  pointer-events: none;
+button {
+  font-family: "Poppins", sans-serif;
 }
 .app-shell {
   height: 100%;
@@ -99,7 +105,7 @@ body::after {
     var(--accent-primary-glow) 0%,
     transparent 70%
   );
-  z-index: 0;
+  z-index: 2;
   pointer-events: none;
   opacity: 0.7;
 }
@@ -135,4 +141,170 @@ body::after {
   font-size: 4rem;
   color: var(--accent-primary);
   margin-bottom: 20px;
+}
+/* 
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: hsla(0, 0%, 98%, 1);
+  background-image: radial-gradient(
+      at 40% 20%,
+      hsla(195, 0%, 100%, 1) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 80% 0%, hsla(199, 100%, 62%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(193, 100%, 93%, 1) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, hsla(191, 100%, 76%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(197, 100%, 77%, 1) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, hsla(195, 100%, 92%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, hsla(207, 100%, 76%, 1) 0px, transparent 50%);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+} */
+/* The main container for the loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: hsla(0, 0%, 98%, 1);
+  /* The beautiful sky-like mesh gradient */
+  background-image: radial-gradient(
+      at 40% 20%,
+      hsla(195, 0%, 100%, 1) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 80% 0%, hsla(199, 100%, 62%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(193, 100%, 93%, 1) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, hsla(191, 100%, 76%, 0.3) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(197, 100%, 77%, 1) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, hsla(195, 100%, 92%, 1) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, hsla(207, 100%, 76%, 0.4) 0px, transparent 50%);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* Hide clouds that move outside the screen */
+}
+
+/* Container for the loading message */
+.loading-message-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  max-width: 320px;
+  min-height: 320px;
+  background: rgba(255, 255, 255, 0.2); /* Semi-transparent background */
+  border-radius: 18px;
+  padding: 32px 40px;
+  backdrop-filter: blur(10px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 2; /* Ensure message is above the clouds */
+}
+
+/* The loading message text */
+.loading-message {
+  color: #1a3140;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s;
+  min-width: 260px;
+  min-height: 2.5em;
+  letter-spacing: 0.01em;
+}
+
+/* --- Cloud Styles --- */
+.cloud {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  filter: blur(10px); /* Softens the cloud edges */
+  z-index: 1; /* Place clouds behind the message but above the background */
+}
+
+/* Individual cloud sizes and positions */
+.cloud-1 {
+  width: 300px;
+  height: 300px;
+  top: 10%;
+  left: -10%;
+  animation: drift 60s linear infinite;
+}
+
+.cloud-2 {
+  width: 400px;
+  height: 400px;
+  top: 60%;
+  left: -20%;
+  animation: drift 80s linear infinite 10s; /* Slower and delayed */
+}
+
+.cloud-3 {
+  width: 250px;
+  height: 250px;
+  top: 25%;
+  right: -15%;
+  animation: drift-right 70s linear infinite;
+}
+
+.cloud-4 {
+  width: 350px;
+  height: 350px;
+  bottom: 5%;
+  right: -25%;
+  animation: drift-right 90s linear infinite 5s; /* Slower and delayed */
+}
+
+/* --- Animation Keyframes --- */
+
+/* Animation for clouds drifting from left to right */
+@keyframes drift {
+  from {
+    transform: translateX(-100vw);
+  }
+  to {
+    transform: translateX(150vw);
+  }
+}
+
+/* Animation for clouds drifting from right to left */
+@keyframes drift-right {
+  from {
+    transform: translateX(100vw);
+  }
+  to {
+    transform: translateX(-150vw);
+  }
+}
+
+body::after,
+.loading-overlay::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+  opacity: 0.2;
+  z-index: 0;
+  pointer-events: none;
+}
+.loading-overlay::after {
+  opacity: 0.3;
 }
