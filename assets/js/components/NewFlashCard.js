@@ -58,7 +58,7 @@ class NewFlashCard extends CardComponent {
   renderCard(card, index) {
     const isFavorited = this.favoritedCards.has(card.id);
     const iconName = this.getIconName(card.icon);
-    const typeIconName = this.getIconName(card.icon);
+    const typeIconName = this.getTypeIconName(card.type);
 
     const gradient = card.styles.gradient || ["#FFFFFF", "#E0E0E0"];
     const textColor = card.styles.textColor || "#111827";
@@ -78,8 +78,8 @@ class NewFlashCard extends CardComponent {
     }" ${cardStyle}>
           <div class="new-flashcard-flipper">
               <div class="new-flashcard-front" ${frontStyle}>
-                  <div class="card-background-icon"><i data-lucide="${iconName}"></i></div>
-                  <div class="card-type-label"><i data-lucide="${typeIconName}"></i><span>${
+                  <div class="card-background-icon"><i data-lucide="${typeIconName}"></i></div>
+                  <div class="card-type-label"><i data-lucide="${iconName}"></i><span>${
       card.type
     }</span></div>
                   
@@ -178,6 +178,19 @@ class NewFlashCard extends CardComponent {
       shapes: "gem",
       sparkles: "sparkles",
       brain: "brain",
+      tip: "lightbulb",
+      insight: "brain",
+    };
+    return iconMap[apiIcon.trim().toLowerCase()] || "box";
+  }
+  getTypeIconName(apiIcon) {
+    console.log(apiIcon);
+    if (typeof apiIcon !== "string" || !apiIcon) {
+      return "box";
+    }
+    const iconMap = {
+      motivation: "trophy",
+      quote: "quote",
       tip: "lightbulb",
       insight: "brain",
     };
@@ -347,14 +360,16 @@ class NewFlashCard extends CardComponent {
 
     hammertime.on("panend", (ev) => {
       flipper.classList.remove("is-panning");
-      rightGlow.style.opacity = 0;
-      leftGlow.style.opacity = 0;
+      // rightGlow.style.opacity = 0;
+      // leftGlow.style.opacity = 0;
 
       const threshold = 100;
       if (Math.abs(ev.deltaX) > threshold) {
+        // SUCCESSFUL SWIPE
+        // We REMOVED the lines that set glow opacity to 0 from here.
+        // The glow will now stay visible as the card animates away.
         const moveOutWidth = window.innerWidth;
         const isDone = ev.deltaX > 0;
-        this.triggerSwipeParticles(isDone);
         this.currentStatus = isDone;
         const endX = isDone ? moveOutWidth : -moveOutWidth;
         card.style.transform = `translate(${endX}px, ${
@@ -363,7 +378,10 @@ class NewFlashCard extends CardComponent {
 
         this.nextCard(isDone);
       } else {
-        // --- REVERTED TO THE SIMPLE AND RELIABLE RESET ---
+        // FAILED SWIPE
+        // We still hide the glow when the card snaps back to center.
+        rightGlow.style.opacity = 0;
+        leftGlow.style.opacity = 0;
         flipper.style.transform = "";
       }
     });
@@ -446,6 +464,17 @@ class NewFlashCard extends CardComponent {
 
   nextCard(isDone) {
     if (this.currentIndex < this.data.cards.length) {
+      setTimeout(() => {
+        // Find the current glow elements at the moment of fade-out
+        const componentRoot = document.getElementById(`card-${this.data.id}`);
+        if (componentRoot) {
+          const leftGlow = componentRoot.querySelector(".left-glow");
+          const rightGlow = componentRoot.querySelector(".right-glow");
+          if (leftGlow) leftGlow.style.opacity = 0;
+          if (rightGlow) rightGlow.style.opacity = 0;
+        }
+      }, 200);
+
       const cardId = this.data.cards[this.currentIndex].id;
       this.swipeHistory.push({
         cardId,
@@ -482,12 +511,13 @@ class NewFlashCard extends CardComponent {
     const originX =
       progressRect.left - headerRect.left + fillElement.offsetWidth;
     const originY = progressRect.top - headerRect.top + progressRect.height / 2;
-
+    console.log(originY);
+    let circleOriginY = originY - 15;
     // --- NEW: Create and animate the circular pulse ---
     const pulse = document.createElement("div");
     pulse.classList.add("progress-pulse");
     pulse.style.left = `${originX}px`;
-    pulse.style.top = `${originY}px`;
+    pulse.style.top = `${circleOriginY}px`;
     container.appendChild(pulse);
 
     anime({
@@ -509,7 +539,7 @@ class NewFlashCard extends CardComponent {
 
       anime({
         targets: particle,
-        translateX: anime.random(-70, 70),
+        translateX: anime.random(-40, 40),
         translateY: anime.random(-50, 0),
         scale: [anime.random(1, 1.5), 0],
         opacity: [1, 0],
@@ -524,56 +554,6 @@ class NewFlashCard extends CardComponent {
         header.removeChild(container);
       }
     }, 1400);
-  }
-
-  triggerSwipeParticles(isDone) {
-    const stackContainer = document.querySelector(
-      ".new-flashcard-stack-container"
-    );
-    if (!stackContainer) return;
-
-    const container = document.createElement("div");
-    container.classList.add("swipe-particle-container");
-    stackContainer.appendChild(container);
-
-    const stackRect = stackContainer.getBoundingClientRect();
-    const originX = isDone ? stackRect.width - 40 : 40;
-    const originY = stackRect.height / 2;
-
-    const computedStyle = getComputedStyle(document.body);
-    const color = isDone
-      ? computedStyle.getPropertyValue("--accent-success").trim()
-      : computedStyle.getPropertyValue("--accent-secondary").trim();
-
-    // UPDATED: Particles move further towards the center
-    const translateX = isDone ? anime.random(-280, -70) : anime.random(70, 280);
-
-    for (let i = 0; i < 60; i++) {
-      const particle = document.createElement("div");
-      particle.classList.add("swipe-particle");
-      particle.style.backgroundColor = color;
-      particle.style.left = `${originX}px`;
-      particle.style.top = `${originY}px`;
-      container.appendChild(particle);
-
-      anime({
-        targets: particle,
-        translateX: translateX,
-        // UPDATED: Particles spread further vertically
-        translateY: anime.random(-250, 250),
-        scale: [anime.random(1, 2.5), 0],
-        opacity: [1, 0],
-        duration: anime.random(800, 1400),
-        easing: "easeOutExpo",
-        complete: () => container.removeChild(particle),
-      });
-    }
-
-    setTimeout(() => {
-      if (stackContainer.contains(container)) {
-        stackContainer.removeChild(container);
-      }
-    }, 1600);
   }
 
   animateNextCard() {

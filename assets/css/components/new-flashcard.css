@@ -65,7 +65,8 @@
 }
 .progress-particle {
   position: absolute;
-  top: 50%;
+  /* top: 50%; */
+  transform: translate(-50%, -50%);
   width: 10px; /* Increased size from 8px */
   height: 10px; /* Increased size from 8px */
   background-color: var(--accent-success);
@@ -268,8 +269,8 @@
   animation: floatAnimation 5s ease-in-out infinite;
 }
 .card-background-icon svg {
-  width: 160px;
-  height: 160px;
+  width: 120px;
+  height: 120px;
   stroke-width: 1.5;
 }
 /* --- UPDATED: Making the card type label bigger --- */
@@ -382,25 +383,27 @@
   position: fixed;
   top: 0;
   bottom: 0;
-  width: 100px;
+  width: 100px; /* Increased from 100px for a wider glow */
   z-index: 2;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.3s ease-out;
   pointer-events: none;
 }
 .left-glow {
   left: 0;
+  /* Increased opacity from 0.3 to 0.5 */
   background: linear-gradient(
     to right,
-    rgba(var(--accent-secondary-rgb), 0.15),
+    rgba(var(--accent-secondary-rgb), 0.5),
     transparent
   );
 }
 .right-glow {
   right: 0;
+  /* Increased opacity from 0.3 to 0.5 */
   background: linear-gradient(
     to left,
-    rgba(var(--accent-success-rgb), 0.15),
+    rgba(var(--accent-success-rgb), 0.5),
     transparent
   );
 }
