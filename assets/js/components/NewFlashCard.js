@@ -58,7 +58,7 @@ class NewFlashCard extends CardComponent {
   renderCard(card, index) {
     const isFavorited = this.favoritedCards.has(card.id);
     const iconName = this.getIconName(card.icon);
-    const typeIconName = this.getIconName(card.type);
+    const typeIconName = this.getIconName(card.icon);
 
     const gradient = card.styles.gradient || ["#FFFFFF", "#E0E0E0"];
     const textColor = card.styles.textColor || "#111827";
@@ -169,6 +169,8 @@ class NewFlashCard extends CardComponent {
   }
 
   getIconName(apiIcon) {
+    console.log(apiIcon);
+    return apiIcon;
     if (typeof apiIcon !== "string" || !apiIcon) {
       return "box";
     }
@@ -352,6 +354,7 @@ class NewFlashCard extends CardComponent {
       if (Math.abs(ev.deltaX) > threshold) {
         const moveOutWidth = window.innerWidth;
         const isDone = ev.deltaX > 0;
+        this.triggerSwipeParticles(isDone);
         this.currentStatus = isDone;
         const endX = isDone ? moveOutWidth : -moveOutWidth;
         card.style.transform = `translate(${endX}px, ${
@@ -453,16 +456,124 @@ class NewFlashCard extends CardComponent {
       if (isDone) {
         this.doneCards.add(cardId);
         this.notDoneCards.delete(cardId);
+        this.triggerProgressBarParticles();
       } else {
         this.notDoneCards.add(cardId);
         this.doneCards.delete(cardId);
       }
       this.currentIndex++;
-
-      // --- THIS IS THE FIX ---
-      // Instead of a full re-render, we animate the next card into place.
       this.animateNextCard();
     }
+  }
+
+  triggerProgressBarParticles() {
+    const header = document.querySelector(".new-flashcard-header");
+    const progressBar = document.querySelector(".progress-bar-unified");
+    if (!header || !progressBar) return;
+
+    const container = document.createElement("div");
+    container.classList.add("progress-particle-container");
+    header.appendChild(container);
+
+    const fillElement = progressBar.querySelector(".progress-bar-unified-fill");
+    const headerRect = header.getBoundingClientRect();
+    const progressRect = progressBar.getBoundingClientRect();
+
+    const originX =
+      progressRect.left - headerRect.left + fillElement.offsetWidth;
+    const originY = progressRect.top - headerRect.top + progressRect.height / 2;
+
+    // --- NEW: Create and animate the circular pulse ---
+    const pulse = document.createElement("div");
+    pulse.classList.add("progress-pulse");
+    pulse.style.left = `${originX}px`;
+    pulse.style.top = `${originY}px`;
+    container.appendChild(pulse);
+
+    anime({
+      targets: pulse,
+      scale: [0, 2],
+      opacity: [1, 0],
+      duration: 500,
+      easing: "easeOutExpo",
+      complete: () => container.removeChild(pulse),
+    });
+
+    // --- UPDATED: Reduced particle count from 35 to 25 ---
+    for (let i = 0; i < 25; i++) {
+      const particle = document.createElement("div");
+      particle.classList.add("progress-particle");
+      particle.style.left = `${originX}px`;
+      particle.style.top = `${originY}px`;
+      container.appendChild(particle);
+
+      anime({
+        targets: particle,
+        translateX: anime.random(-70, 70),
+        translateY: anime.random(-50, 0),
+        scale: [anime.random(1, 1.5), 0],
+        opacity: [1, 0],
+        duration: anime.random(800, 1200),
+        easing: "easeOutExpo",
+        complete: () => container.removeChild(particle),
+      });
+    }
+
+    setTimeout(() => {
+      if (header.contains(container)) {
+        header.removeChild(container);
+      }
+    }, 1400);
+  }
+
+  triggerSwipeParticles(isDone) {
+    const stackContainer = document.querySelector(
+      ".new-flashcard-stack-container"
+    );
+    if (!stackContainer) return;
+
+    const container = document.createElement("div");
+    container.classList.add("swipe-particle-container");
+    stackContainer.appendChild(container);
+
+    const stackRect = stackContainer.getBoundingClientRect();
+    const originX = isDone ? stackRect.width - 40 : 40;
+    const originY = stackRect.height / 2;
+
+    const computedStyle = getComputedStyle(document.body);
+    const color = isDone
+      ? computedStyle.getPropertyValue("--accent-success").trim()
+      : computedStyle.getPropertyValue("--accent-secondary").trim();
+
+    // UPDATED: Particles move further towards the center
+    const translateX = isDone ? anime.random(-280, -70) : anime.random(70, 280);
+
+    for (let i = 0; i < 60; i++) {
+      const particle = document.createElement("div");
+      particle.classList.add("swipe-particle");
+      particle.style.backgroundColor = color;
+      particle.style.left = `${originX}px`;
+      particle.style.top = `${originY}px`;
+      container.appendChild(particle);
+
+      anime({
+        targets: particle,
+        translateX: translateX,
+        // UPDATED: Particles spread further vertically
+        translateY: anime.random(-250, 250),
+        scale: [anime.random(1, 2.5), 0],
+        opacity: [1, 0],
+        duration: anime.random(800, 1400),
+        easing: "easeOutExpo",
+        complete: () => container.removeChild(particle),
+      });
+    }
+
+    setTimeout(() => {
+      if (stackContainer.contains(container)) {
+        stackContainer.removeChild(container);
+      }
+    }, 1600);
   }
 
   animateNextCard() {
@@ -503,31 +614,57 @@ class NewFlashCard extends CardComponent {
   }
 
   updateHeaderUI() {
-    const counter = document.querySelector(".card-counter");
+    const cardSetElement = document.getElementById(`card-${this.data.id}`);
+    if (!cardSetElement) return;
+
+    // --- 1. SCORE LOGIC UPDATE ---
+    // Progress is now based on cards answered, not the current index.
+    const completedCount = this.doneCards.size + this.notDoneCards.size;
+    const totalCards = this.data.cards.length;
+
+    const counter = cardSetElement.querySelector(".card-counter");
     if (counter) {
-      counter.textContent = `${this.currentIndex + 1} / ${
-        this.data.cards.length
-      }`;
+      counter.textContent = `${completedCount} / ${totalCards}`;
     }
 
-    // NEW: Update the unified progress bar
-    const progressBarFill = document.querySelector(
+    const progressBarFill = cardSetElement.querySelector(
       ".progress-bar-unified-fill"
     );
     if (progressBarFill) {
       const percentage =
-        this.data.cards.length > 0
-          ? (this.currentIndex / this.data.cards.length) * 100
-          : 0;
+        totalCards > 0 ? (completedCount / totalCards) * 100 : 0;
       progressBarFill.style.width = `${percentage}%`;
     }
 
-    const recallBtn = document.querySelector(".recall-btn");
+    // --- 2. "ON FIRE" MODE LOGIC ---
+    // Check if 50% or more cards are marked correct.
+    const progressBar = cardSetElement.querySelector(".progress-bar-unified");
+    if (progressBar) {
+      const correctPercentage =
+        totalCards > 0 ? this.doneCards.size / totalCards : 0;
+      if (correctPercentage >= 0.5) {
+        progressBar.classList.add("is-on-fire");
+      } else {
+        progressBar.classList.remove("is-on-fire");
+      }
+    }
+
+    const header = cardSetElement.querySelector(".new-flashcard-header");
+    if (header) {
+      const correctPercentage =
+        totalCards > 0 ? this.doneCards.size / totalCards : 0;
+      if (correctPercentage >= 0.5) {
+        header.classList.add("is-on-fire");
+      } else {
+        header.classList.remove("is-on-fire");
+      }
+    }
+
+    const recallBtn = cardSetElement.querySelector(".recall-btn");
     if (recallBtn) {
       recallBtn.disabled = this.swipeHistory.length === 0;
     }
   }
-
   recallCard() {
     if (this.swipeHistory.length > 0) {
       // Full re-render is simplest for recall
