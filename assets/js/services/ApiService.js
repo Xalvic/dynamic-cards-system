@@ -349,4 +349,54 @@ const ApiService = {
       return null;
     }
   },
+
+  /**
+   * NEW: Tracks user activity for a checklist session.
+   * @param {object} payload - The data to send to the API.
+   * @param {string} payload.userId
+   * @param {string} payload.appId
+   * @param {string} payload.interactionId
+   * @param {Array} payload.items - The state of all checklist items.
+   * @param {boolean} payload.completed - Whether the entire checklist is done.
+   */
+  async updateChecklistActivity(payload) {
+    const apiUrl =
+      "https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/interaction/activity";
+
+    const requestBody = {
+      user_id: payload.userId,
+      app_id: payload.appId,
+      user_interaction_id: payload.interactionId,
+      user_activity: {
+        activities: [
+          {
+            type: "checklist",
+            items: payload.items,
+            completed: payload.completed,
+          },
+        ],
+      },
+    };
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          "Checklist activity tracking failed: " + response.statusText
+        );
+      }
+
+      const result = await response.json();
+      console.log("✅ Checklist activity tracked successfully:", result);
+      return result;
+    } catch (error) {
+      console.error("❌ Failed to track checklist activity:", error);
+      return null;
+    }
+  },
 };

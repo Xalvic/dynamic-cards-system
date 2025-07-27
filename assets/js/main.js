@@ -178,43 +178,74 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function renderCards(interactionId) {
     showLoadingMessages();
 
-    console.log(appName, userName, userId, appId);
+    // --- STEP 1: Fetch and render the initial card deck ---
     const apiData = await ApiService.fetchCardsApi(
       userId,
       appId,
       interactionId
     );
-    // console.log(apiData);
-    apiCardData = apiData?.data?.acd_data.data;
-    // console.log(apiCardData);
-    apiCardData.type = "new-flashcards";
-    const cardData = await ApiService.transformApiData(
-      apiCardData,
-      "newDrawingFlashcards"
-    );
+
+    // This part needs to be flexible based on the card type
+    let cardData;
+    const interactionType = apiData?.data?.int_type;
+
+    if (interactionType === "checklist") {
+      // For checklists, the data is structured differently
+      cardData = apiData?.data?.acd_data?.data;
+    } else {
+      // For flashcards, we transform the data
+      const apiCardData = apiData?.data?.acd_data?.data;
+      apiCardData.type = "new-flashcards";
+      cardData = await ApiService.transformApiData(
+        apiCardData,
+        "newDrawingFlashcards"
+      );
+    }
+
+    if (!cardData) {
+      hideLoadingMessages();
+      cardDisplayArea.innerHTML = `<div class="placeholder"><h2>Error</h2><p>Could not load card data.</p></div>`;
+      return;
+    }
+
     cardData.interactionId = interactionId;
+    cardData.type = interactionType;
     const cardComponent = displayCard(cardData);
     hideLoadingMessages();
 
-    if (!cardComponent) return; // Exit if component failed to create
+    if (!cardComponent) return;
 
-    // --- STEP 2: Fetch the full history list in the background ---
+    // --- STEP 2: Check for history parameter and apply progress ---
+    const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("history")) {
       const historyData = await ApiService.fetchInteractionList(userId, appId);
 
       if (historyData?.data?.interactions) {
-        // --- STEP 3: Find the matching progress for the current session ---
+        console.log(historyData?.data?.interactions);
+        console.log(interactionId);
         const matchingInteraction = historyData.data.interactions.find(
           (interaction) => interaction.id == interactionId
         );
+        console.log(matchingInteraction);
 
         if (matchingInteraction && matchingInteraction.user_activity) {
           try {
-            const activity = JSON.parse(matchingInteraction.user_activity);
+            console.log(matchingInteraction.user_activity);
+            const activity = matchingInteraction.user_activity;
             const progressData = activity.activities[0];
 
-            // --- STEP 4: Apply the found progress to the component ---
-            cardComponent.applyProgress(progressData);
+            // --- ✨ NEW: Check the interaction type before applying progress ---
+            if (
+              matchingInteraction.int_type === "flashcards" &&
+              cardComponent instanceof NewFlashCard
+            ) {
+              cardComponent.applyProgress(progressData);
+            } else if (
+              matchingInteraction.int_type === "checklist" &&
+              cardComponent instanceof Checklist
+            ) {
+              cardComponent.applyProgress(progressData);
+            }
           } catch (e) {
             console.error("Could not apply history:", e);
           }
@@ -259,9 +290,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     switch (data.type) {
       case "flashcards":
-        cardComponent = new FlashCard(data);
-        break;
-      case "new-flashcards":
         cardComponent = new NewFlashCard(data);
         break;
       case "checklist":
@@ -356,7 +384,7 @@ messaging.onMessage((payload) => {
   setTimeout(() => {
     notificationElement.classList.remove("show");
   }, 5000);
-  
+
   const options = {
     body: body,
     icon: payload.data.icon || "/default-icon.png",

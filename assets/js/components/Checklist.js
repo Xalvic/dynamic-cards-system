@@ -1,28 +1,114 @@
 class Checklist extends CardComponent {
   constructor(data) {
     super(data);
+    this.interactionId = data.interactionId;
+    // Initialize completed items from the incoming data
     this.completedItems = new Map(
-      data.items
+      data.tasks
         .filter((item) => item.completed)
-        .map((item) => [item.id, Date.now()])
+        .map((item) => [item.task, Date.now()])
     );
-    this.expandedItemId = null; // Tracks the currently expanded item
+    // Timer functionality has been removed
     this.completionSound = new Audio("../../../assets/sounds/sucess.mp3");
-    this.activeTimers = new Map();
+  }
+
+  /**
+   * Applies a saved state to the checklist component from history.
+   * @param {object} progressData - The parsed progress object from the API.
+   */
+  applyProgress(progressData) {
+    if (!progressData || !progressData.items) {
+      console.warn("Checklist: Invalid progress data, cannot apply history.");
+      return;
+    }
+
+    console.log("Applying restored checklist progress:", progressData);
+
+    // Clear the current completed items before restoring
+    this.completedItems.clear();
+
+    // Repopulate the completedItems Map from the history data
+    progressData.items.forEach((item) => {
+      if (item.checked) {
+        // The API uses 'item_id', which corresponds to our 'task' key
+        this.completedItems.set(item.item_id, Date.now());
+      }
+    });
+
+    // Re-render the entire component to reflect the restored state.
+    // This is the most reliable way to update all UI elements at once.
+    this.updateUI();
+  }
+
+  /**
+   * Builds the payload and sends the current checklist state to the API.
+   */
+  syncProgressWithApi() {
+    // Don't send updates if there's no interaction ID
+    if (!this.interactionId) {
+      console.warn(
+        "Checklist: interactionId is missing, cannot sync progress."
+      );
+      return;
+    }
+
+    // Create the 'items' array in the format required by the API
+    const itemsPayload = this.data.tasks.map((item) => ({
+      item_id: item.task, // Using 'task' as the unique ID
+      checked: this.completedItems.has(item.task),
+    }));
+
+    // Check if all tasks have been completed
+    const isCompleted = this.completedItems.size === this.data.tasks.length;
+
+    const payload = {
+      userId: localStorage.getItem("user_id"),
+      appId: localStorage.getItem("app_id"),
+      interactionId: this.interactionId,
+      items: itemsPayload,
+      completed: isCompleted,
+    };
+
+    // Call the new ApiService function (runs in the background)
+    ApiService.updateChecklistActivity(payload);
   }
 
   resetState() {
     this.completedItems.clear();
-    this.expandedItemId = null;
-    this.updateUI(); // Re-render to clear the view
+    this.updateUI();
+    this.syncProgressWithApi();
+  }
+
+  /**
+   * Adjusts the height of the card container to fit the visible face.
+   * @param {HTMLElement} flipperElement - The .task-card-flipper element.
+   */
+  adjustFlipperHeight(flipperElement) {
+    const container = flipperElement.closest(".task-item-container");
+    if (!container) return;
+
+    const frontFace = flipperElement.querySelector(".task-card-front");
+    const backFace = flipperElement.querySelector(".task-card-back");
+
+    // Use scrollHeight to get the true height of the content
+    const frontHeight = frontFace.scrollHeight;
+    const backHeight = backFace.scrollHeight;
+
+    // Set the container's height based on which face is visible
+    if (flipperElement.classList.contains("is-flipped")) {
+      container.style.height = `${backHeight}px`;
+    } else {
+      container.style.height = `${frontHeight}px`;
+    }
   }
 
   render() {
-    const totalItems = this.data.items.length;
+    const totalItems = this.data.tasks.length;
     const completedCount = this.completedItems.size;
     const remainingCount = totalItems - completedCount;
     const progress = totalItems > 0 ? (completedCount / totalItems) * 100 : 0;
 
+    // The main structure with the progress header remains the same
     return `
       <div class="card checklist" id="card-${this.data.id}">
         <div class="card-content">
@@ -56,42 +142,83 @@ class Checklist extends CardComponent {
             </div>
           </div>
           <ul class="task-list">
-            ${this.data.items.map((item) => this.renderListItem(item)).join("")}
+            ${this.data.tasks.map((item) => this.renderListItem(item)).join("")}
           </ul>
         </div>
       </div>
     `;
   }
 
+  /**
+   * Renders a single task item as a flippable card.
+   */
   renderListItem(item) {
-    const isCompleted = this.completedItems.has(item.id);
-    const isExpanded = this.expandedItemId === item.id;
+    const isCompleted = this.completedItems.has(item.task);
+    const timeStr = item.time || "";
+    // Condition to show schedule button for multi-day tasks
+    const showScheduleBtn = timeStr.includes("day") || timeStr.includes("week");
 
     return `
-      <li class="task-item ${isCompleted ? "completed" : ""} ${
-      isExpanded ? "expanded" : ""
-    }" data-item-id="${item.id}">
-        <div class="task-fill-bg"></div>
-        <div class="task-completed-overlay">
-            <i data-lucide="check-circle-2"></i>
-            <span>Completed</span>
-        </div>
-        <div class="task-header">
-          <div class="task-info">
-            <h3 class="task-title">${item.id}</h3>
-            <p class="task-text">${item.text}</p>
+      <li class="task-item-container ${
+        isCompleted ? "completed" : ""
+      }" data-item-id="${item.task}">
+        <div class="task-card-flipper">
+          
+          <div class="task-card-front">
+            <div class="task-fill-bg"></div>
+            <div class="task-completed-overlay">
+                <i data-lucide="check-circle-2"></i>
+                <span>Completed</span>
+            </div>
+
+            <div class="task-content">
+              <div class="task-main-info">
+                <div class="task-title">${item.task}</div>
+                <p class="task-text">${item.action_to_take}</p>
+                ${timeStr ? `<div class="time-chip">${timeStr}</div>` : ""}
+              </div>
+              <div class="task-complete-action">
+                <input type="checkbox" id="checkbox-${
+                  item.task
+                }" class="complete-checkbox" ${isCompleted ? "checked" : ""}>
+                <label for="checkbox-${
+                  item.task
+                }" class="complete-checkbox-label">
+                  <i data-lucide="check"></i>
+                </label>
+              </div>
+            </div>
+
+            <div class="task-footer">
+              <div class="footer-buttons">
+                ${
+                  showScheduleBtn
+                    ? `<button class="action-btn schedule-btn"><i data-lucide="calendar-plus"></i> Schedule</button>`
+                    : ""
+                }
+              </div>
+              <button class="flip-btn"><i data-lucide="info"></i> <span>Why this task?</span></button>
+            </div>
           </div>
-          ${
-            item.timeToComplete
-              ? `<div class="time-chip">${item.timeToComplete}</div>`
-              : ""
-          }
-        </div>
-        <div class="task-actions">
-          <div class="timer-display" data-timer-for="${item.id}">00:00</div>
-          <button class="action-btn timer-btn"><i data-lucide="timer"></i> <span>Start Timer<span/></button>
-          <button class="action-btn schedule-btn"><i data-lucide="calendar-plus"></i> Schedule</button>
-          <button class="action-btn complete-btn"><i data-lucide="check"></i> Mark Complete</button>
+
+          <div class="task-card-back">
+            <div class="back-content">
+              <h4>Why this task is important</h4>
+              <p>${item.why_this_task || "No details provided."}</p>
+              ${
+                item.statistic
+                  ? `
+                <div class="statistic-box">
+                  <i data-lucide="trending-up"></i>
+                  <span>${item.statistic}</span>
+                </div>
+              `
+                  : ""
+              }
+            </div>
+            <button class="flip-btn"><i data-lucide="arrow-left"></i> <span>Back to task</span></button>
+          </div>
+
         </div>
       </li>
     `;
@@ -101,166 +228,53 @@ class Checklist extends CardComponent {
     const componentRoot = document.getElementById(`card-${this.data.id}`);
     if (!componentRoot) return;
 
-    // Event delegation for all task-related clicks
     componentRoot.querySelector(".task-list").addEventListener("click", (e) => {
-      const taskItem = e.target.closest(".task-item");
+      const taskItem = e.target.closest(".task-item-container");
       if (!taskItem || taskItem.classList.contains("completed")) return;
 
       const itemId = taskItem.dataset.itemId;
+      const flipper = taskItem.querySelector(".task-card-flipper");
 
-      // Handle clicks on action buttons
-      if (e.target.closest(".action-btn")) {
-        if (e.target.closest(".complete-btn")) {
-          this.markItemComplete(itemId);
-        } else if (e.target.closest(".timer-btn")) {
-          this.toggleTimer(itemId);
-        } else if (e.target.closest(".schedule-btn")) {
-          this.scheduleItem(itemId);
-        }
-      } else {
-        // Handle click on the main task body to expand/collapse
-        this.toggleTaskExpansion(itemId);
+      // Handle flip button clicks
+      if (e.target.closest(".flip-btn")) {
+        e.stopPropagation();
+        flipper.classList.toggle("is-flipped");
+        this.adjustFlipperHeight(flipper);
       }
+      // Handle checkbox click to mark as complete
+      else if (e.target.closest(".complete-checkbox-label")) {
+        e.preventDefault();
+        this.markItemComplete(itemId);
+      }
+      // Handle schedule button click
+      else if (e.target.closest(".schedule-btn")) {
+        e.stopPropagation();
+        this.scheduleItem(itemId);
+      }
+    });
+
+    componentRoot.querySelectorAll(".task-card-flipper").forEach((flipper) => {
+      this.adjustFlipperHeight(flipper);
     });
 
     // Reset button listener
     componentRoot.querySelector(".reset-btn").addEventListener("click", (e) => {
       e.stopPropagation();
-      if (confirm("Are you sure you want to reset your progress?")) {
-        this.resetState();
-      }
+      this.resetState();
     });
-  }
-  stopTimer(itemId) {
-    // Check if a timer is running for this item
-    if (this.activeTimers.has(itemId)) {
-      const timerData = this.activeTimers.get(itemId);
-      clearInterval(timerData.intervalId); // Stop the interval
-      this.activeTimers.delete(itemId); // Remove from active timers
-
-      // Also reset the button's UI
-      const taskItem = document.querySelector(
-        `.task-item[data-item-id="${itemId}"]`
-      );
-      if (taskItem) {
-        taskItem.classList.remove("timer-active");
-        const timerBtn = taskItem.querySelector(".timer-btn span");
-        if (timerBtn) timerBtn.textContent = "Start Timer";
-        const timerDisplay = taskItem.querySelector(".timer-display");
-        if (timerDisplay) timerDisplay.textContent = "00:00";
-      }
-    }
-  }
-  toggleTimer(itemId) {
-    const taskItem = document.querySelector(
-      `.task-item[data-item-id="${itemId}"]`
-    );
-    const timerBtn = taskItem.querySelector(".timer-btn span");
-    const timerDisplay = taskItem.querySelector(".timer-display");
-
-    // Check if a timer is already running for this item
-    if (this.activeTimers.has(itemId)) {
-      // --- STOP THE TIMER ---
-      this.stopTimer(itemId);
-    } else {
-      // --- START THE TIMER ---
-      taskItem.classList.add("timer-active");
-      timerBtn.textContent = "Stop Timer";
-
-      const startTime = Date.now();
-
-      const intervalId = setInterval(() => {
-        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const minutes = String(Math.floor(elapsedTime / 60)).padStart(2, "0");
-        const seconds = String(elapsedTime % 60).padStart(2, "0");
-        timerDisplay.textContent = `${minutes}:${seconds}`;
-      }, 1000);
-
-      // Store the timer's data so we can stop it later
-      this.activeTimers.set(itemId, { intervalId, startTime });
-    }
-  }
-  async scheduleItem(itemId) {
-    const itemData = this.data.items.find((i) => i.id === itemId);
-    if (!itemData) return;
-
-    // 1. Get the desired date and time from the user
-    // const scheduleTime = prompt(
-    //   `When do you want to schedule "${itemData.text}"?\n\ne.g., "tomorrow at 3pm" or "Aug 15 at 10:00"`
-    // );
-
-    // if (!scheduleTime) return;
-
-    // --- IMPORTANT ---
-    // The next step is to convert the user's text (e.g., "tomorrow at 3pm")
-    // into a specific date. In a real app, you would use a date-parsing library
-    // like `date-fns` or an API call.
-    // For this example, we'll simulate it by creating a date for the next day.
-
-    const now = new Date();
-    const eventDate = new Date(now);
-    eventDate.setDate(now.getDate() + 1); // Set to tomorrow
-    eventDate.setHours(15, 0, 0, 0); // Set to 3:00 PM
-
-    const startTime = eventDate;
-    // Set end time 1 hour later for this example
-    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
-
-    // 2. Format dates into the required Google Calendar format (YYYYMMDDTHHMMSSZ)
-    // The 'Z' indicates UTC time.
-    const formatDate = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, "");
-
-    // 3. Build the Google Calendar URL
-    const params = new URLSearchParams();
-    params.append("action", "TEMPLATE");
-    params.append("text", itemData.text); // Event Title
-    params.append(
-      "details",
-      `Task ID: ${itemData.id}\nEstimated Time: ${
-        itemData.timeToComplete || "Not set"
-      }`
-    );
-    params.append("dates", `${formatDate(startTime)}/${formatDate(endTime)}`);
-    params.append("ctz", "UTC"); // Specify Timezone as UTC
-
-    const googleCalendarUrl = `https://www.google.com/calendar/render?${params.toString()}`;
-
-    // 4. Open the link in a new tab. This triggers the app on mobile.
-    window.open(googleCalendarUrl, "_blank");
-  }
-  toggleTaskExpansion(itemId) {
-    const previouslyExpandedId = this.expandedItemId;
-
-    // Collapse the previously open item if there is one
-    if (previouslyExpandedId && previouslyExpandedId !== itemId) {
-      const prevItemEl = document.querySelector(
-        `.task-item[data-item-id="${previouslyExpandedId}"]`
-      );
-      if (prevItemEl) prevItemEl.classList.remove("expanded");
-    }
-
-    // Toggle the current item
-    const currentItemEl = document.querySelector(
-      `.task-item[data-item-id="${itemId}"]`
-    );
-    if (currentItemEl) {
-      const isNowExpanded = currentItemEl.classList.toggle("expanded");
-      this.expandedItemId = isNowExpanded ? itemId : null;
-    }
   }
 
   markItemComplete(itemId) {
     if (this.completedItems.has(itemId)) return;
-    this.stopTimer(itemId);
 
     this.completedItems.set(itemId, Date.now());
     const itemElement = document.querySelector(
-      `.task-item[data-item-id="${itemId}"]`
+      `.task-item-container[data-item-id="${itemId}"]`
     );
     if (!itemElement) return;
-    // Collapse the actions before animating
-    itemElement.classList.remove("expanded");
-    this.expandedItemId = null;
+
+    const flipper = itemElement.querySelector(".task-card-flipper");
+    if (flipper) flipper.classList.remove("is-flipped");
 
     const fillBg = itemElement.querySelector(".task-fill-bg");
     const completedOverlay = itemElement.querySelector(
@@ -272,19 +286,16 @@ class Checklist extends CardComponent {
         easing: "easeOutExpo",
         duration: 800,
         complete: () => {
-          // After animation, add the final completed class which disables pointer events
           itemElement.classList.add("completed");
         },
       })
       .add({
-        // The energy fill animation
         targets: fillBg,
         width: "100%",
         duration: 600,
       })
       .add(
         {
-          // Fade in the "Completed" overlay
           targets: completedOverlay,
           opacity: [0, 1],
           scale: [0.8, 1],
@@ -292,11 +303,12 @@ class Checklist extends CardComponent {
           duration: 700,
         },
         "-=400"
-      ); // Overlap with the fill animation
+      );
 
     this.updateProgressUI();
-    // this.addTapAnimation(itemElement);
-    if (this.completedItems.size === this.data.items.length) {
+    this.syncProgressWithApi();
+
+    if (this.completedItems.size === this.data.tasks.length) {
       document.getElementById("card-display-area").scrollTo({
         top: 0,
         behavior: "smooth",
@@ -305,16 +317,45 @@ class Checklist extends CardComponent {
     }
   }
 
+  scheduleItem(itemId) {
+    const itemData = this.data.tasks.find((i) => i.task === itemId);
+    if (!itemData) return;
+
+    const now = new Date();
+    const eventDate = new Date(now);
+    eventDate.setDate(now.getDate() + 1);
+    eventDate.setHours(15, 0, 0, 0);
+
+    const startTime = eventDate;
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+    const formatDate = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, "");
+
+    const params = new URLSearchParams();
+    params.append("action", "TEMPLATE");
+    params.append("text", itemData.task);
+    params.append(
+      "details",
+      `Task: ${itemData.action_to_take}\nEstimated Time: ${
+        itemData.time || "Not set"
+      }`
+    );
+    params.append("dates", `${formatDate(startTime)}/${formatDate(endTime)}`);
+    params.append("ctz", "UTC");
+
+    const googleCalendarUrl = `https://www.google.com/calendar/render?${params.toString()}`;
+    window.open(googleCalendarUrl, "_blank");
+  }
+
   updateProgressUI() {
     const componentRoot = document.getElementById(`card-${this.data.id}`);
     if (!componentRoot) return;
 
-    const totalItems = this.data.items.length;
+    const totalItems = this.data.tasks.length;
     const completedCount = this.completedItems.size;
     const remainingCount = totalItems - completedCount;
     const progress = totalItems > 0 ? (completedCount / totalItems) * 100 : 0;
 
-    // Selectors for the new stat values
     const statTaken = componentRoot.querySelector(
       `#stat-taken-${this.data.id}`
     );
@@ -326,12 +367,10 @@ class Checklist extends CardComponent {
     );
     const progressBar = componentRoot.querySelector(".progress-bar-fg");
 
-    // Update the text content of the new stat boxes
     if (statTaken) statTaken.textContent = completedCount;
     if (statRemaining) statRemaining.textContent = remainingCount;
     if (statProgress) statProgress.textContent = `${Math.round(progress)}%`;
 
-    // Animate the progress bar width
     if (progressBar) {
       anime({
         targets: progressBar,
@@ -342,7 +381,6 @@ class Checklist extends CardComponent {
     }
   }
 
-  // The main updateUI method is now only needed for major resets
   updateUI() {
     const cardSetElement = document.getElementById(`card-${this.data.id}`);
     if (cardSetElement) {
@@ -352,40 +390,7 @@ class Checklist extends CardComponent {
       this.attachEventListeners();
     }
   }
-  addTapAnimation(el) {
-    const itemDim = el.getBoundingClientRect(),
-      itemSize = {
-        x: itemDim.right - itemDim.left,
-        y: itemDim.bottom - itemDim.top,
-      },
-      shapes = ["line", "zigzag"],
-      colors = ["#2FB5F3", "#FF0A47", "#FF0AC2", "#47FF0A"];
-    const chosenC = Math.floor(Math.random() * colors.length),
-      chosenS = Math.floor(Math.random() * shapes.length);
-    const burst = new mojs.Burst({
-      left: itemDim.left + itemSize.x / 2,
-      top: itemDim.top + itemSize.y / 2,
-      radiusX: itemSize.x,
-      radiusY: itemSize.y,
-      count: 8,
 
-      children: {
-        shape: shapes[chosenS],
-        radius: 10,
-        scale: { 0.8: 1 },
-        fill: "none",
-        points: 7,
-        stroke: colors[chosenC],
-        strokeDasharray: "100%",
-        strokeDashoffset: { "-100%": "100%" },
-        duration: 350,
-        delay: 100,
-        easing: "quad.out",
-        isShowEnd: false,
-      },
-    });
-    burst.play();
-  }
   triggerCompletionCelebration() {
     this.completionSound.play();
     if (typeof mojs === "undefined") {
@@ -439,7 +444,6 @@ class Checklist extends CardComponent {
         fill: softColors,
         radius: "rand(3, 8)",
         scale: { 1: 0 },
-        // --- THE FIX IS HERE: REMOVED THE QUOTES ---
         easing: mojs.easing.bezier(0.1, 1, 0.3, 1),
         duration: 1800,
       },
