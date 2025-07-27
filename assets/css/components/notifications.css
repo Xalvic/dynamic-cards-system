@@ -1,5 +1,6 @@
 /* --- FLOATING MENU & NOTIFICATION PANEL --- */
 .floating-menu-btn {
+  display: none;
   position: fixed;
   top: 0;
   left: 0;
