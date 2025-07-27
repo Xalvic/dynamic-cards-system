@@ -311,7 +311,7 @@ body::after,
 
 .in-app-notification {
   position: fixed;
-  top: -100px; /* Start off-screen */
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   background-color: #333;
@@ -322,18 +322,19 @@ body::after,
   transition: top 0.5s ease-in-out;
   cursor: pointer;
   text-align: center;
+  opacity: 0;
 }
 
 .in-app-notification.show {
-  top: 20px; /* Slide into view */
+  opacity: 1;
 }
 
 .in-app-notification h4 {
-    margin: 0 0 4px 0;
+  margin: 0 0 4px 0;
 }
 .in-app-notification p {
-    margin: 0;
-    font-size: 0.9em;
+  margin: 0;
+  font-size: 0.9em;
 }
 
 .error-text {

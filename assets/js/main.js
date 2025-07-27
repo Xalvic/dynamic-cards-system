@@ -380,7 +380,9 @@ messaging.onMessage((payload) => {
   };
 
   // Show the notification
-  notificationElement.classList.add("show");
+  const urlParams2 = new URLSearchParams(window.location.search);
+  if (!urlParams2.has("interaction_id"))
+    notificationElement.classList.add("show");
   setTimeout(() => {
     notificationElement.classList.remove("show");
   }, 5000);
