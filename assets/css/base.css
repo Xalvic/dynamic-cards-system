@@ -309,6 +309,33 @@ body::after,
   opacity: 0.3;
 }
 
+.in-app-notification {
+  position: fixed;
+  top: -100px; /* Start off-screen */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 16px;
+  border-radius: 8px;
+  z-index: 1000;
+  transition: top 0.5s ease-in-out;
+  cursor: pointer;
+  text-align: center;
+}
+
+.in-app-notification.show {
+  top: 20px; /* Slide into view */
+}
+
+.in-app-notification h4 {
+    margin: 0 0 4px 0;
+}
+.in-app-notification p {
+    margin: 0;
+    font-size: 0.9em;
+}
+
 .error-text {
   margin: 1rem 0;
   color: red;

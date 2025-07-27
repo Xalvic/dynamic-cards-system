@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await getTokenAndShow();
     renderUserActions();
   }
-  document.querySelector(".token-text").textContent = theToken;
+  // document.querySelector(".token-text").textContent = theToken;
   // --- THEME SETUP ---
   if (urlParams.get("theme") === "dark")
     document.body.classList.remove("light-theme");
@@ -310,8 +310,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       .then((data) => {
         console.log(data);
         if (data.message)
-          document.querySelector(".error-text").textContent = data.message;
-        hideLoadingMessages();
+          // document.querySelector(".error-text").textContent = data.message;
+          hideLoadingMessages();
       })
       .catch((error) => {
         console.log(error.message);
@@ -335,9 +335,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 // Listen to foreground messages
 messaging.onMessage((payload) => {
   console.log("Message received in foreground:", payload);
-  document.querySelector(".users-text").textContent = JSON.stringify(payload);
+  // document.querySelector(".users-text").textContent = JSON.stringify(payload);
 
   const { title, body } = payload.notification;
+  const clickAction = payload.data.click_action;
+
+  const notificationElement = document.getElementById("in-app-notification");
+  notificationElement.innerHTML = `
+    <h4>${title}</h4>
+    <p>${body}</p>
+  `;
+  // Make it clickable
+  notificationElement.onclick = () => {
+    window.open(clickAction, "_blank");
+    notificationElement.classList.remove("show");
+  };
+
+  // Show the notification
+  notificationElement.classList.add("show");
+  setTimeout(() => {
+    notificationElement.classList.remove("show");
+  }, 5000);
+  
   const options = {
     body: body,
     icon: payload.data.icon || "/default-icon.png",
