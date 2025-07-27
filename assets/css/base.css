@@ -313,3 +313,6 @@ body::after,
   margin: 1rem 0;
   color: red;
 }
+.token-text {
+  word-break: break-all;
+}

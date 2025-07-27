@@ -75,6 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await getTokenAndShow();
     renderUserActions();
   }
+  document.querySelector(".token-text").textContent = theToken;
   // --- THEME SETUP ---
   if (urlParams.get("theme") === "dark")
     document.body.classList.remove("light-theme");
@@ -334,6 +335,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 // Listen to foreground messages
 messaging.onMessage((payload) => {
   console.log("Message received in foreground:", payload);
+  document.querySelector(".users-text").textContent = JSON.stringify(payload);
 
   const { title, body } = payload.notification;
   const options = {
