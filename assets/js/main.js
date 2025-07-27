@@ -306,8 +306,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     )
       .then((response) => response.json())
-      .then((data) => console.log("Success:", data))
-      .catch((error) => console.error("Error:", error));
+      .then((data) => {
+        console.log(data);
+        if (data.message)
+          document.querySelector(".error-text").textContent = data.message;
+        hideLoadingMessages();
+      })
+      .catch((error) => {
+        console.log(error.message);
+        if (error.message)
+          document.querySelector(
+            ".error-text"
+          ).textContent = `FROM ERROR ${error.message}`;
+        hideLoadingMessages();
+      });
   }
 
   // 4. Mark notification as active

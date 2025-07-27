@@ -308,3 +308,8 @@ body::after,
 .loading-overlay::after {
   opacity: 0.3;
 }
+
+.error-text {
+  margin: 1rem 0;
+  color: red;
+}
