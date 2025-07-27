@@ -5,10 +5,7 @@ class NewFlashCard extends CardComponent {
     // --- MODIFIED: Store original cards for "Restart" and "Review" ---
     this.originalCards = [...data.cards];
     this.interactionId = data.interactionId;
-    // --- ✨ NEW: To store progress between sessions ---
-    this.knownFromPreviousSession = new Set();
     this.initializeState(data.progress);
-    this.completionSound = new Audio("../../../assets/sounds/complete.mp3");
   }
 
   initializeState(progressData) {
@@ -30,17 +27,15 @@ class NewFlashCard extends CardComponent {
     }
   }
 
-  // --- MODIFIED: Handles different types of resets ---
+  // --- MODIFIED: Added a flag to handle different types of resets ---
   resetState(fullReset = true) {
+    // If it's a full reset, restore the original full deck of cards
     if (fullReset) {
       this.data.cards = [...this.originalCards];
-      // On a full restart, clear the carried-over progress
-      this.knownFromPreviousSession.clear();
     }
     this.currentIndex = 0;
     this.currentStatus = false;
     this.progressHistory = [];
-    // Reset session-specific progress
     this.favoritedCards = new Set();
     this.doneCards = new Set();
     this.notDoneCards = new Set();
@@ -80,6 +75,7 @@ class NewFlashCard extends CardComponent {
 
   // --- ✨ REWRITTEN: The new results page render method ---
   renderResults() {
+    // The API call from your old results page is preserved
     const payload = {
       userId: localStorage.getItem("user_id"),
       appId: localStorage.getItem("app_id"),
@@ -90,47 +86,37 @@ class NewFlashCard extends CardComponent {
     };
     ApiService.updateActivityProgress(payload);
 
-    const totalKnownCount =
-      this.knownFromPreviousSession.size + this.doneCards.size;
-    const totalLearningCount = this.originalCards.length - totalKnownCount;
+    const total = this.data.cards.length;
+    const knownCount = this.doneCards.size;
+    const learningCount = this.notDoneCards.size;
     const accuracy =
       this.originalCards.length > 0
-        ? Math.round((totalKnownCount / this.originalCards.length) * 100)
+        ? Math.round((knownCount / this.originalCards.length) * 100)
         : 0;
-
-    let title = "";
-    let subtitle = "";
-    if (accuracy >= 90) {
-      title = "Excellent Work!";
-      subtitle = "You've mastered this set. Time for a new challenge!";
-    } else if (accuracy >= 60) {
-      title = "Great Progress!";
-      subtitle =
-        "You're getting the hang of it. Keep reviewing the tough ones!";
-    } else {
-      title = "Keep Going!";
-      subtitle = "Practice makes perfect. Let's give this set another try.";
-    }
 
     const knownPercent =
       this.originalCards.length > 0
-        ? totalKnownCount / this.originalCards.length
+        ? knownCount / this.originalCards.length
         : 0;
     const learningPercent =
       this.originalCards.length > 0
-        ? totalLearningCount / this.originalCards.length
+        ? learningCount / this.originalCards.length
         : 0;
 
-    const learningArcEnd = learningPercent * 359.99;
-    const knownArcEnd = learningArcEnd + knownPercent * 359.99;
+    const totalPercentForArc = knownPercent + learningPercent;
+    let learningArcEnd = (learningPercent / totalPercentForArc) * 359.99;
+    if (isNaN(learningArcEnd)) learningArcEnd = 0;
+
+    let knownArcEnd =
+      learningArcEnd + (knownPercent / totalPercentForArc) * 359.99;
+    if (isNaN(knownArcEnd)) knownArcEnd = learningArcEnd;
 
     return `
       <div class="card new-flashcard-set" id="card-${this.data.id}">
-        <div class="results-page" data-accuracy="${accuracy}">
-        <div class="result-wrapper">
+        <div class="results-page">
           <div class="results-header">
-            <h3>${title}</h3>
-            <p>${subtitle}</p>
+            <h3>Brilliant work!</h3>
+            <p>Now let's try some practice questions in Learn.</p>
             <img src="https://storage.googleapis.com/production-assets/assets/flashcard-results.png" alt="Celebration" class="results-illustration"/>
           </div>
           <div class="results-body">
@@ -157,8 +143,8 @@ class NewFlashCard extends CardComponent {
                 <div class="progress-text">${accuracy}%</div>
               </div>
               <div class="progress-bars">
-                <div class="bar-item"><div class="bar-label"><span class="bar-color-dot known"></span><span>Known</span></div><span class="bar-count">${totalKnownCount}</span></div>
-                <div class="bar-item"><div class="bar-label"><span class="bar-color-dot learning"></span><span>Still learning</span></div><span class="bar-count">${totalLearningCount}</span></div>
+                <div class="bar-item"><div class="bar-label"><span class="bar-color-dot known"></span><span>Known</span></div><span class="bar-count">${knownCount}</span></div>
+                <div class="bar-item"><div class="bar-label"><span class="bar-color-dot learning"></span><span>Still learning</span></div><span class="bar-count">${learningCount}</span></div>
               </div>
             </div>
             <button class="recall-last-btn" ${
@@ -166,11 +152,11 @@ class NewFlashCard extends CardComponent {
             }><i data-lucide="undo-2"></i> Back to the last question</button>
           </div>
           <div class="results-footer">
+            <button class="results-btn primary" id="practise-btn">Practise with questions</button>
             <button class="results-btn secondary" id="review-btn" ${
-              totalLearningCount === 0 ? "disabled" : ""
-            }><div class="button-overlay"></div> <span>Keep reviewing ${totalLearningCount} terms</span></button>
+              learningCount === 0 ? "disabled" : ""
+            }>Keep reviewing ${learningCount} terms</button>
             <button class="results-btn tertiary" id="restart-btn">Restart Flashcards</button>
-          </div>
           </div>
         </div>
       </div>
@@ -179,161 +165,47 @@ class NewFlashCard extends CardComponent {
 
   // --- ✨ NEW METHOD ---
   reviewIncorrectCards() {
-    this.doneCards.forEach((cardId) =>
-      this.knownFromPreviousSession.add(cardId)
-    );
     const incorrectCardIds = new Set(this.notDoneCards);
+    // Filter from the original full deck
     const reviewDeck = this.originalCards.filter((card) =>
       incorrectCardIds.has(card.id)
     );
 
     if (reviewDeck.length > 0) {
       this.data.cards = reviewDeck;
-      this.resetState(false);
+      this.resetState(false); // Reset state but don't overwrite the deck
       this.updateUI();
     }
   }
 
-  // --- ✨ ADDED BACK: Your animation methods ---
-  triggerBonusParticles() {
-    const resultsPage = document.querySelector(".results-page");
-    if (!resultsPage) return;
-
-    const container = document.createElement("div");
-    container.classList.add("celebration-container");
-    resultsPage.appendChild(container);
-
-    const colors = ["#A8D0E6", "#F7D4A2", "#84DCC6", "#FFAAA5"];
-
-    for (let i = 0; i < 60; i++) {
-      const particle = document.createElement("div");
-      particle.classList.add("particle");
-      particle.style.backgroundColor =
-        colors[anime.random(0, colors.length - 1)];
-      particle.style.left = `${anime.random(10, 90)}%`;
-      particle.style.top = `${anime.random(20, 80)}%`;
-      container.appendChild(particle);
-
-      anime({
-        targets: particle,
-        scale: [0, anime.random(0.5, 1.2)],
-        opacity: [1, 0],
-        translateY: [0, anime.random(-100, 100)],
-        duration: anime.random(1000, 2000),
-        easing: "easeOutExpo",
-        complete: () => {
-          if (container.contains(particle)) container.removeChild(particle);
-        },
-      });
-    }
-
-    setTimeout(() => {
-      if (resultsPage.contains(container)) {
-        resultsPage.removeChild(container);
-      }
-    }, 2500);
-  }
-
-  triggerResultsCelebration(score) {
-    this.completionSound.play();
-    if (typeof customElements.get("dotlottie-player") === "undefined") {
-      console.error("DotLottie player not loaded.");
-      return;
-    }
-    let lottiePath = "";
-    if (score >= 90) {
-      lottiePath = "../../../assets/animations/Confetti-3.lottie";
-    } else if (score >= 60) {
-      lottiePath = "../../../assets/animations/Confetti-2.lottie";
-    } else {
-      return;
-    }
-
-    const lottiePlayer = document.createElement("dotlottie-player");
-    lottiePlayer.src = lottiePath;
-    lottiePlayer.setAttribute("autoplay", true);
-    lottiePlayer.style.position = "fixed";
-    lottiePlayer.style.top = "0";
-    lottiePlayer.style.left = "0";
-    lottiePlayer.style.width = "100%";
-    lottiePlayer.style.height = "100%";
-    lottiePlayer.style.zIndex = "9999";
-    lottiePlayer.style.pointerEvents = "none";
-
-    document.body.appendChild(lottiePlayer);
-
-    lottiePlayer.addEventListener("complete", () => {
-      if (document.body.contains(lottiePlayer)) {
-        document.body.removeChild(lottiePlayer);
-      }
-    });
-  }
-
-  // --- ✨ REWRITTEN METHOD to call animations ---
+  // --- ✨ REWRITTEN METHOD ---
   attachResultsListeners() {
+    const practiseBtn = document.getElementById("practise-btn");
     const reviewBtn = document.getElementById("review-btn");
     const restartBtn = document.getElementById("restart-btn");
     const recallBtn = document.querySelector(".recall-last-btn");
-    const resultsPage = document.querySelector(".results-page");
 
+    if (practiseBtn) {
+      practiseBtn.addEventListener("click", () =>
+        console.log("Action: Practise with questions clicked.")
+      );
+    }
     if (reviewBtn) {
       reviewBtn.addEventListener("click", () => this.reviewIncorrectCards());
     }
     if (restartBtn) {
       restartBtn.addEventListener("click", () => {
-        this.resetState(true);
+        this.resetState(true); // Pass true for a full reset to the original deck
         this.updateUI();
       });
     }
     if (recallBtn) {
       recallBtn.addEventListener("click", () => this.recallCard());
     }
-
-    if (resultsPage) {
-      const accuracy = parseInt(resultsPage.dataset.accuracy, 10);
-      if (!isNaN(accuracy)) {
-        // 1. Animate the progress ring arcs
-        const learningArc = resultsPage.querySelector(
-          ".progress-ring-arc.learning"
-        );
-        const knownArc = resultsPage.querySelector(".progress-ring-arc.known");
-
-        [learningArc, knownArc].forEach((arc) => {
-          if (arc) {
-            const length = arc.getTotalLength();
-            arc.style.strokeDasharray = length;
-            arc.style.strokeDashoffset = length;
-            anime({
-              targets: arc,
-              strokeDashoffset: [length, 0],
-              duration: 1500,
-              easing: "easeInOutSine",
-              delay: 200,
-            });
-          }
-        });
-        // 2. Animate the count-up for Known and Still Learning
-        const barItems = resultsPage.querySelectorAll(".bar-item");
-        anime({
-          targets: barItems,
-          opacity: [0, 1],
-          translateY: [20, 0], // Slide up from below
-          delay: anime.stagger(150, { start: 400 }), // Stagger the animation of each bar
-          duration: 800,
-          easing: "easeOutExpo",
-        });
-        // 3. Trigger the celebration Lottie/particle animations
-        setTimeout(() => {
-          this.triggerResultsCelebration(accuracy);
-          if (accuracy >= 90) {
-            this.triggerBonusParticles();
-          }
-        }, 500);
-      }
-    }
   }
 
   // --- ALL YOUR OTHER METHODS ARE PRESERVED BELOW ---
+
   render() {
     if (this.currentIndex >= this.data.cards.length) {
       return this.renderResults();
@@ -351,16 +223,15 @@ class NewFlashCard extends CardComponent {
                 <p class="deck-subtitle">${this.data.subtitle}</p>
             </div>
             <div class="progress-bar-container">
+              <div class="streak-counter-container"></div>
               <div class="progress-bar-unified">
                 <div class="progress-bar-unified-fill" style="width: ${
                   totalCards > 0 ? (completedCount / totalCards) * 100 : 0
                 }%"></div>
               </div>
             </div>
-            <div class="header-controls">
-              <div class="streak-counter-container"></div>
-              <div class="card-counter">${completedCount} / ${totalCards}</div>
-            </div>
+            <div class="header-controls"></div>
+            <span class="card-counter">${completedCount} / ${totalCards}</span>
           </div>
           <div class="new-flashcard-stack-container">
             <div class="new-flashcard-stack">
@@ -523,54 +394,8 @@ class NewFlashCard extends CardComponent {
     const recallBtn = document.getElementById(`recall-btn-${this.data.id}`);
     const autoplayBtn = componentRoot.querySelector(".autoplay-btn");
 
-    function addTapAnimation(el) {
-      const itemDim = el.getBoundingClientRect(),
-        itemSize = {
-          x: itemDim.right - itemDim.left,
-          y: itemDim.bottom - itemDim.top,
-        },
-        shapes = ["line", "zigzag"],
-        colors = ["#2FB5F3", "#FF0A47", "#FF0AC2", "#47FF0A"];
-      const chosenC = Math.floor(Math.random() * colors.length),
-        chosenS = Math.floor(Math.random() * shapes.length);
-      const burst = new mojs.Burst({
-        left: itemDim.left + itemSize.x / 2,
-        top: itemDim.top + itemSize.y / 2,
-        radiusX: itemSize.x,
-        radiusY: itemSize.y,
-        count: 8,
-
-        children: {
-          shape: shapes[chosenS],
-          radius: 10,
-          scale: { 0.8: 1 },
-          fill: "none",
-          points: 7,
-          stroke: colors[chosenC],
-          strokeDasharray: "100%",
-          strokeDashoffset: { "-100%": "100%" },
-          duration: 350,
-          delay: 100,
-          easing: "quad.out",
-          isShowEnd: false,
-        },
-      });
-      burst.play();
-    }
-
-    recallBtn.addEventListener("click", () => {
-      addTapAnimation(recallBtn);
-      this.stopAutoPlay();
-      this.recallCard();
-    });
-    autoplayBtn.addEventListener("click", () => {
-      addTapAnimation(autoplayBtn);
-      // Bounce animation for autoplay button only
-      autoplayBtn.classList.remove("bounce");
-      void autoplayBtn.offsetWidth;
-      autoplayBtn.classList.add("bounce");
-      this.toggleAutoPlay();
-    });
+    recallBtn.addEventListener("click", () => this.recallCard());
+    autoplayBtn.addEventListener("click", () => this.toggleAutoPlay());
 
     cards.forEach((card, index) => {
       if (index < this.currentIndex) card.style.display = "none";
@@ -773,7 +598,7 @@ class NewFlashCard extends CardComponent {
     if (header && header.classList.contains("is-on-fire")) {
       streakMessage.classList.add("on-fire");
     }
-    streakMessage.innerHTML = `${this.correctStreak} IN A ROW <i data-lucide="flame" class="streak-flame"></i>`;
+    streakMessage.innerHTML = `${this.correctStreak} in a row! <i data-lucide="flame" class="streak-flame"></i>`;
     container.appendChild(streakMessage);
     lucide.createIcons(); // Render the new flame icon
 

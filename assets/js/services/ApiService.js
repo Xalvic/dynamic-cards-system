@@ -78,30 +78,36 @@ const ApiService = {
 
   getNotifications() {
     return [
+      {
+        id: "show_history",
+        type: "show_history",
+        title: "Show History",
+        actionId: "show_history",
+      },
       // {
       //   id: "notif1",
       //   type: "quiz",
       //   title: "Quiz: Deep Work Principles",
       //   actionId: "deepWorkQuiz",
       // },
-      {
-        id: "notif_new_api",
-        type: "new-flashcards",
-        title: "MOCK DATA: Flashcards",
-        actionId: "newDrawingFlashcards",
-      },
-      {
-        id: "notif3",
-        type: "checklist",
-        title: "MOCK DATA: Checklist",
-        actionId: "deepWorkChecklist",
-      },
-      {
-        id: "notif_api",
-        type: "flashcards",
-        title: "ACD API CALL TEST",
-        actionId: "drawingFlashcards",
-      },
+      // {
+      //   id: "notif_new_api",
+      //   type: "new-flashcards",
+      //   title: "MOCK DATA: Flashcards",
+      //   actionId: "newDrawingFlashcards",
+      // },
+      // {
+      //   id: "notif3",
+      //   type: "checklist",
+      //   title: "MOCK DATA: Checklist",
+      //   actionId: "deepWorkChecklist",
+      // },
+      // {
+      //   id: "notif_api",
+      //   type: "flashcards",
+      //   title: "ACD API CALL TEST",
+      //   actionId: "drawingFlashcards",
+      // },
     ];
   },
 
@@ -350,6 +356,33 @@ const ApiService = {
     }
   },
 
+  /**
+   * ✨ NEW: Adds a new task to a checklist interaction.
+   * NOTE: This is a placeholder and currently only logs to the console.
+   * @param {object} payload - The data for the new task.
+   * @param {string} payload.userId
+   * @param {string} payload.appId
+   * @param {string} payload.interactionId
+   * @param {object} payload.taskData - The new task object.
+   * @returns {Promise<object|null>}
+   */
+  async addNewChecklistTask(payload) {
+    console.log("ApiService: Pretending to save a new task to the backend.");
+    console.log("Payload:", payload);
+
+    // This is where you would make a real POST request to your API
+    // const apiUrl = `.../api/interaction/add-task`;
+    // try {
+    //   const response = await fetch(apiUrl, { ... });
+    //   ...
+    // } catch (error) { ... }
+
+    // Return a mock success response for now
+    return Promise.resolve({
+      status: "success",
+      message: "Task added locally.",
+    });
+  },
   /**
    * NEW: Tracks user activity for a checklist session.
    * @param {object} payload - The data to send to the API.

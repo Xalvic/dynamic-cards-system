@@ -71,7 +71,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       userActionsContainer.append(userAction);
     });
   }
-
+  let customActionBtn = document.getElementById("customActionBtn");
+  customActionBtn.addEventListener("click", async () => {
+    if (document.getElementById("customAction").value == "") return;
+    if (localStorage.getItem("card-fcm-token")) {
+      theToken = localStorage.getItem("card-fcm-token");
+      getNotification(document.getElementById("customAction").value);
+    } else {
+      await getTokenAndShow();
+      getNotification(document.getElementById("customAction").value);
+    }
+  });
   const urlParams = new URLSearchParams(window.location.search);
 
   // if (localStorage.getItem("card-fcm-token")) {
@@ -178,7 +188,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // GET INTERACTION ID AND PASS TO API
   if (urlParams.has("interaction_id")) {
-    ApiService.trackNotificationOpen(userId, appId, urlParams.get("interaction_id"));
+    ApiService.trackNotificationOpen(
+      userId,
+      appId,
+      urlParams.get("interaction_id")
+    );
     renderCards(urlParams.get("interaction_id"));
   }
 
@@ -274,19 +288,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       cardDisplayArea.innerHTML = `<div class="placeholder"><h2>Loading...</h2></div>`;
       showLoadingMessages();
-      markNotificationAsActive(li);
       if (window.innerWidth < 768) {
         toggleNotificationPanel();
       }
-
-      const cardData = await ApiService.fetchCardData(actionId);
-
-      hideLoadingMessages();
-      if (cardData) {
-        displayCard(cardData);
-      } else {
-        cardDisplayArea.innerHTML = `<div class="placeholder"><h2>Error</h2><p>Could not load card data.</p></div>`;
-      }
+      window.location.href = `../../history.html?app_id=${appId}&user_id=${userId}`;
     }
   });
 
@@ -356,14 +361,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           ).textContent = `FROM ERROR ${error.message}`;
         hideLoadingMessages();
       });
-  }
-
-  // 4. Mark notification as active
-  function markNotificationAsActive(notificationElement) {
-    notificationService.listElement.querySelectorAll("li").forEach((item) => {
-      item.classList.remove("active");
-    });
-    notificationElement.classList.add("active");
   }
 });
 

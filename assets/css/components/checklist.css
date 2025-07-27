@@ -1,38 +1,12 @@
-.deck-info {
-  text-align: center;
-  margin-bottom: 16px; /* Space between title and progress header */
-  padding: 0 16px;
-}
+/* --- ✨ COMPLETE V2 CHECKLIST STYLES --- */
 
-.deck-title {
-  font-size: 1.1em; /* Adjust as needed */
-  font-weight: 600;
-  color: var(--text-secondary); /* Muted text color */
-  margin: 0;
-  line-height: 1.3;
-}
-
-.deck-subtitle {
-  font-size: 0.9em;
-  color: #9ca3af; /* A more muted gray */
-  margin: 4px 0 0;
-  line-height: 1.4;
-}
-
-/* Optional: Styles for dark theme */
-.dark-theme .deck-title {
-  color: #9ca3af;
-}
-
-.dark-theme .deck-subtitle {
-  color: #6b7280;
-}
-
+/* --- Main Card Padding --- */
 .card.checklist {
   padding: 20px;
   overflow-x: hidden; /* Prevent horizontal scroll from animations */
 }
-/* --- Progress Header --- */
+
+/* --- Progress Header Styles (Restored) --- */
 .checklist-progress-header {
   background-color: var(--secondary-surface-color);
   border: 1px solid var(--border-color);
@@ -44,11 +18,10 @@
 
 .header-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr); /* Changed from 3 to 2 columns */
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
-
 .stat-box {
   background-color: var(--primary-surface-color);
   padding: 16px 10px;
@@ -60,21 +33,19 @@
   justify-content: center;
   gap: 4px;
 }
-
 .stat-value {
   font-size: 1.75rem;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
 }
-
 .stat-label {
   font-size: 0.8rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
-
 .reset-btn {
+  display: none;
   position: absolute;
   top: 16px;
   right: 16px;
@@ -82,7 +53,6 @@
   height: 36px;
   background-color: rgba(0, 0, 0, 0.05);
   border-radius: 50%;
-  display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
@@ -90,203 +60,213 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .reset-btn:hover {
   background-color: rgba(0, 0, 0, 0.1);
   transform: rotate(90deg);
 }
-
 .reset-btn svg {
   width: 20px;
   height: 20px;
 }
 
-.progress-bar-bg {
+/* --- ✨ NEW: Segmented Progress Bar --- */
+.segmented-progress-bar {
+  display: flex;
+  gap: 4px;
   width: 100%;
-  height: 10px;
+  height: 8px;
+  margin-bottom: 8px;
+}
+.progress-segment {
+  flex-grow: 1;
   background-color: var(--border-color);
-  border-radius: 5px;
-  overflow: hidden;
+  border-radius: 4px;
+  transition: background-color 0.4s ease;
+}
+.progress-segment.active {
+  background-color: var(--text-primary);
 }
 
-.progress-bar-fg {
-  height: 100%;
-  background-color: var(--accent-primary);
-  border-radius: 5px;
-  transition: width 0.5s ease-out;
+/* --- ✨ NEW: Progress Percentage Text --- */
+.progress-percentage-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: left;
 }
 
-.task-list {
+/* --- NEW TASK LIST STYLES (Corrected) --- */
+.task-list-v2 {
   list-style: none;
   padding: 0;
   margin-top: 20px;
-  perspective: 1000px;
+  perspective: 1200px;
 }
-
-.task-item-container {
+.task-item-container-v2 {
   position: relative;
-  margin-bottom: 16px;
-  /* Add a smooth transition for the height change from JS */
+  margin-bottom: 12px;
+  min-height: 88px;
   transition: height 0.35s ease-in-out;
 }
-
-.task-card-flipper {
+.task-card-flipper-v2 {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  transition: transform 0.7s;
+  transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
   transform-style: preserve-3d;
 }
-
-.task-card-flipper.is-flipped {
+.task-card-flipper-v2.is-flipped {
   transform: rotateY(180deg);
 }
-
-.task-card-front,
-.task-card-back {
+.task-card-front-v2,
+.task-card-back-v2 {
   position: absolute;
   width: 100%;
   height: 100%;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  background-color: var(--primary-surface-color);
+  /* background-color is removed to allow gradients */
   border: 1px solid var(--border-color);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
-
-.task-card-back {
+.task-card-front-v2 {
+  z-index: 2;
+  cursor: pointer;
+}
+.task-card-back-v2 {
   transform: rotateY(180deg);
   padding: 20px;
-}
-
-/* --- FRONT FACE STYLING --- */
-.task-content {
-  display: flex;
   justify-content: space-between;
-  padding: 20px;
-  flex-grow: 1;
 }
-.task-main-info {
-  margin-right: 16px;
+.task-content-v2 {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px;
+  gap: 12px;
 }
-.task-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 8px 0;
-  text-transform: capitalize;
-}
-.task-text {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin: 0 0 12px 0;
-}
-.time-chip {
-  display: inline-block;
-  background-color: rgba(var(--accent-primary-rgb), 0.1);
-  color: var(--accent-primary);
-  padding: 5px 10px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-/* Custom Checkbox */
-.task-complete-action {
+.task-checkbox-v2 {
   flex-shrink: 0;
+  padding-top: 2px;
 }
-.complete-checkbox {
+.complete-checkbox-v2 {
   display: none;
 }
-.complete-checkbox-label {
+.complete-checkbox-label-v2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.complete-checkbox-label svg {
-  width: 24px;
-  height: 24px;
-  color: var(--border-color);
+.complete-checkbox-label-v2 svg {
+  width: 16px;
+  height: 16px;
+  color: transparent;
   transition: all 0.2s ease;
 }
-.complete-checkbox:checked + .complete-checkbox-label {
+.task-item-container-v2.completed .complete-checkbox-label-v2,
+.complete-checkbox-v2:checked + .complete-checkbox-label-v2 {
   background-color: var(--accent-success);
   border-color: var(--accent-success);
 }
-.complete-checkbox:checked + .complete-checkbox-label svg {
+.task-item-container-v2.completed .complete-checkbox-label-v2 svg,
+.complete-checkbox-v2:checked + .complete-checkbox-label-v2 svg {
   color: #fff;
-  transform: scale(1.1);
 }
-
-/* Footer */
-.task-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-color);
-  background-color: var(--border-color);
+.task-info-v2 {
+  flex-grow: 1;
+  overflow: hidden;
+  padding-right: 60px;
+}
+.task-title-v2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+.task-text-v2 {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.time-chip-v2 {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.task-footer-v2 {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  padding: 0 8px 8px 16px;
+  margin-top: auto;
 }
-.footer-buttons {
-  display: flex;
-  gap: 10px;
+.task-footer-v2 > *:first-child {
+  margin-right: auto;
 }
-.action-btn {
-  display: flex;
+.action-btn-v2 {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
   background-color: var(--primary-surface-color);
   font-weight: 500;
+  font-size: 0.8rem;
   cursor: pointer;
+  color: var(--text-secondary);
 }
-.action-btn svg {
-  width: 16px;
-  height: 16px;
+.action-btn-v2 svg {
+  width: 14px;
+  height: 14px;
 }
-.flip-btn {
+.flip-btn-v2 {
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-weight: 500;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  padding: 8px;
+  border-radius: 50%;
+  line-height: 0;
 }
-.flip-btn svg {
-  width: 16px;
-  height: 16px;
+.flip-btn-v2 svg {
+  width: 20px;
+  height: 20px;
 }
-
-/* --- BACK FACE STYLING --- */
-.back-content {
+.flip-btn-v2.back {
+  align-self: flex-end;
+}
+.back-content-v2 {
   flex-grow: 1;
 }
-.back-content h4 {
+.back-content-v2 h4 {
   margin: 0 0 8px 0;
   color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
 }
-.back-content p {
+.back-content-v2 p {
   margin: 0 0 16px 0;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.5;
+  font-size: 0.85rem;
 }
-.statistic-box {
+.statistic-box-v2 {
   background-color: rgba(var(--accent-primary-rgb), 0.1);
   padding: 12px;
   border-radius: 10px;
@@ -296,39 +276,165 @@
   color: var(--accent-primary);
   font-weight: 500;
 }
-.statistic-box svg {
+.statistic-box-v2 svg {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
 }
+.task-item-container-v2.completed {
+  opacity: 0.6;
+}
+.task-item-container-v2.completed .task-card-front-v2 {
+  cursor: default;
+}
+.task-item-container-v2.completed .task-title-v2,
+.task-item-container-v2.completed .task-text-v2 {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+@keyframes wiggle {
+  0%,
+  7% {
+    transform: rotateZ(0);
+  }
+  15% {
+    transform: rotateZ(-5deg);
+  }
+  20% {
+    transform: rotateZ(4deg);
+  }
+  25% {
+    transform: rotateZ(-4deg);
+  }
+  30% {
+    transform: rotateZ(3deg);
+  }
+  35% {
+    transform: rotateZ(-2deg);
+  }
+  40%,
+  100% {
+    transform: rotateZ(0);
+  }
+}
+.task-item-container-v2.wiggle {
+  animation: wiggle 2s ease-in-out;
+  animation-delay: 0.5s;
+}
 
-/* Completion animation styles */
-.task-fill-bg,
-.task-completed-overlay {
-  position: absolute;
+/* --- ✨ NEW: Add Task Button & Bottom Sheet --- */
+.add-task-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  margin-top: 20px;
+  border: 2px dashed var(--border-color);
+  border-radius: 16px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.add-task-btn:hover {
+  background-color: var(--secondary-surface-color);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+.add-task-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.bottom-sheet-overlay {
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  border-radius: 16px;
-  z-index: 3;
-}
-.task-fill-bg {
-  width: 0%;
-  background-color: rgba(var(--accent-success-rgb), 0.2);
-}
-.task-completed-overlay {
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  color: var(--accent-success-dark);
-  font-weight: 500;
+  align-items: flex-end;
   opacity: 0;
   pointer-events: none;
+  transition: opacity 0.3s ease;
 }
-.task-item-container.completed .task-content,
-.task-item-container.completed .task-footer {
-  opacity: 0.3;
-  transition: opacity 0.5s ease;
+.bottom-sheet-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.bottom-sheet {
+  background-color: var(--primary-surface-color);
+  width: 100%;
+  max-width: 420px;
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.15);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.bottom-sheet-overlay.show .bottom-sheet {
+  transform: translateY(0);
+}
+.bottom-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.bottom-sheet-header h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.close-sheet-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+}
+.form-group {
+  margin-bottom: 16px;
+}
+.form-group label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+.form-group textarea {
+  resize: vertical;
+}
+.save-task-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--accent-primary);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.save-task-btn:hover {
+  background-color: var(--accent-primary-dark);
 }

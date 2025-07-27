@@ -2,45 +2,15 @@ class NewFlashCard extends CardComponent {
   constructor(data) {
     super(data);
     this.data = data;
-    // --- MODIFIED: Store original cards for "Restart" and "Review" ---
-    this.originalCards = [...data.cards];
     this.interactionId = data.interactionId;
-    // --- ✨ NEW: To store progress between sessions ---
-    this.knownFromPreviousSession = new Set();
-    this.initializeState(data.progress);
-    this.completionSound = new Audio("../../../assets/sounds/complete.mp3");
-  }
-
-  initializeState(progressData) {
     this.resetState();
-
-    if (progressData) {
-      console.log("Restoring progress from history:", progressData);
-
-      this.currentIndex = progressData.current_index || 0;
-      this.progressHistory = progressData.progress || [];
-
-      this.progressHistory.forEach((item) => {
-        if (item.impression === "right") {
-          this.doneCards.add(item.card_id);
-        } else {
-          this.notDoneCards.add(item.card_id);
-        }
-      });
-    }
   }
 
-  // --- MODIFIED: Handles different types of resets ---
-  resetState(fullReset = true) {
-    if (fullReset) {
-      this.data.cards = [...this.originalCards];
-      // On a full restart, clear the carried-over progress
-      this.knownFromPreviousSession.clear();
-    }
+  resetState() {
     this.currentIndex = 0;
     this.currentStatus = false;
+    // this.swipeHistory = [];
     this.progressHistory = [];
-    // Reset session-specific progress
     this.favoritedCards = new Set();
     this.doneCards = new Set();
     this.notDoneCards = new Set();
@@ -50,35 +20,115 @@ class NewFlashCard extends CardComponent {
     this.autoPlayInterval = null;
   }
 
-  // --- ✨ NEW HELPER METHOD for the progress ring ---
-  describeArc(x, y, radius, startAngle, endAngle) {
-    const polarToCartesian = (centerX, centerY, r, angleInDegrees) => {
-      const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
-      return {
-        x: centerX + r * Math.cos(angleInRadians),
-        y: centerY + r * Math.sin(angleInRadians),
-      };
-    };
-    const start = polarToCartesian(x, y, radius, endAngle);
-    const end = polarToCartesian(x, y, radius, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    const d = [
-      "M",
-      start.x,
-      start.y,
-      "A",
-      radius,
-      radius,
-      0,
-      largeArcFlag,
-      0,
-      end.x,
-      end.y,
-    ].join(" ");
-    return d;
+  render() {
+    console.log(this.data);
+    if (this.currentIndex >= this.data.cards.length) {
+      return this.renderResults();
+    }
+    const canRecall = this.progressHistory.length > 0;
+    const completedCount = this.doneCards.size + this.notDoneCards.size;
+    const totalCards = this.data.cards.length;
+
+    return `
+            <div class="card new-flashcard-set" id="card-${this.data.id}">
+                <div class="card-content">
+                    <div class="new-flashcard-header">
+                     <div class="deck-info">
+                            <h4 class="deck-title">${this.data.title}</h4>
+                            <p class="deck-subtitle">${this.data.subtitle}</p>
+                        </div>
+
+                        <div class="progress-bar-container">
+                            <div class="streak-counter-container"></div>
+                            <div class="progress-bar-unified">
+                                <div class="progress-bar-unified-fill" style="width: ${
+                                  totalCards > 0
+                                    ? (completedCount / totalCards) * 100
+                                    : 0
+                                }%"></div>
+                            </div>
+                        </div>
+                        <div class="header-controls">
+                            <!-- Removed duplicate recall button from header-controls -->
+                        </div>
+                        <span class="card-counter">${completedCount} / ${totalCards}</span>
+                    </div>
+
+                    <div class="new-flashcard-stack-container">
+                        <div class="new-flashcard-stack">
+                            ${this.data.cards
+                              .map((card, index) =>
+                                this.renderCard(card, index)
+                              )
+                              .join("")}
+                        </div>
+                    </div>
+                </div>
+                <div class="swipe-glow left-glow"></div>
+                <div class="swipe-glow right-glow"></div>
+                <button class="autoplay-btn ${
+                  this.autoPlay ? "active" : ""
+                }" id="autoplay-btn-${this.data.id}">
+                    <i data-lucide="${this.autoPlay ? "pause" : "play"}"></i>
+                </button>
+                <button class="recall-btn" id="recall-btn-${this.data.id}" ${
+      !canRecall ? "disabled" : ""
+    }>
+                    <i data-lucide="undo-2"></i>
+                </button>
+            </div>
+        `;
   }
 
-  // --- ✨ REWRITTEN: The new results page render method ---
+  renderCard(card, index) {
+    const isFavorited = this.favoritedCards.has(card.id);
+    const iconName = this.getIconName(card.icon);
+    const typeIconName = this.getTypeIconName(card.type);
+
+    const gradient = card.styles.gradient || ["#FFFFFF", "#E0E0E0"];
+    const textColor = card.styles.textColor || "#111827";
+
+    const cardFaceStyle = `style="background-image: linear-gradient(to bottom right, ${gradient[0]}, ${gradient[1]}); color: ${textColor};"`;
+    const frontStyle = `style="--card-text-color: ${textColor}; background-image: linear-gradient(to bottom right, ${gradient[0]}, ${gradient[1]}); color: ${textColor};"`;
+
+    const offset = Math.min(index - this.currentIndex, 2) * 10;
+    const scale = 1 - Math.min(index - this.currentIndex, 2) * 0.05;
+    const cardStyle = `style="z-index: ${
+      this.data.cards.length - index
+    }; transform: translateY(${offset}px) scale(${scale});"`;
+
+    return `
+      <div class="new-flashcard-slide" data-index="${index}" data-id="${
+      card.id
+    }" ${cardStyle}>
+          <div class="new-flashcard-flipper">
+              <div class="new-flashcard-front" ${frontStyle}>
+                  <div class="card-background-icon"><i data-lucide="${typeIconName}"></i></div>
+                  <div class="card-type-label"><i data-lucide="${iconName}"></i><span>${
+      card.type
+    }</span></div>
+                  
+                  <div class="card-main-content">
+                      <h3>${card.front.title}</h3>
+                      <p>${card.front.description}</p>
+                  </div>
+                  <button class="tts-btn"><i data-lucide="volume-2"></i></button>
+                  <button class="favorite-btn ${
+                    isFavorited ? "favorited" : ""
+                  }"><i data-lucide="heart"></i></button>
+              </div>
+              <div class="new-flashcard-back" ${cardFaceStyle}>
+                  <div class="card-main-content">
+                      <h3>${card.back.title}</h3>
+                      <p>${card.back.description}</p>
+                  </div>
+                  <button class="tts-btn"><i data-lucide="volume-2"></i></button>
+              </div>
+          </div>
+      </div>
+    `;
+  }
+
   renderResults() {
     const payload = {
       userId: localStorage.getItem("user_id"),
@@ -86,18 +136,16 @@ class NewFlashCard extends CardComponent {
       interactionId: this.interactionId,
       progress: this.progressHistory,
       currentIndex: this.currentIndex,
-      completed: true,
+      completed: true, // Mark as completed
     };
     ApiService.updateActivityProgress(payload);
 
-    const totalKnownCount =
-      this.knownFromPreviousSession.size + this.doneCards.size;
-    const totalLearningCount = this.originalCards.length - totalKnownCount;
-    const accuracy =
-      this.originalCards.length > 0
-        ? Math.round((totalKnownCount / this.originalCards.length) * 100)
-        : 0;
+    const total = this.data.cards.length;
+    const doneCount = this.doneCards.size;
+    const notDoneCount = this.notDoneCards.size;
+    const accuracy = total > 0 ? Math.round((doneCount / total) * 100) : 0;
 
+    // --- NEW: Dynamic title and subtitle based on score ---
     let title = "";
     let subtitle = "";
     if (accuracy >= 90) {
@@ -112,99 +160,55 @@ class NewFlashCard extends CardComponent {
       subtitle = "Practice makes perfect. Let's give this set another try.";
     }
 
-    const knownPercent =
-      this.originalCards.length > 0
-        ? totalKnownCount / this.originalCards.length
-        : 0;
-    const learningPercent =
-      this.originalCards.length > 0
-        ? totalLearningCount / this.originalCards.length
-        : 0;
-
-    const learningArcEnd = learningPercent * 359.99;
-    const knownArcEnd = learningArcEnd + knownPercent * 359.99;
+    const radius = 65;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (accuracy / 100) * circumference;
 
     return `
       <div class="card new-flashcard-set" id="card-${this.data.id}">
-        <div class="results-page" data-accuracy="${accuracy}">
-        <div class="result-wrapper">
-          <div class="results-header">
-            <h3>${title}</h3>
-            <p>${subtitle}</p>
-            <img src="https://storage.googleapis.com/production-assets/assets/flashcard-results.png" alt="Celebration" class="results-illustration"/>
-          </div>
-          <div class="results-body">
-            <h4>Your progress</h4>
-            <div class="progress-summary">
-              <div class="progress-ring-container">
-                <svg viewBox="0 0 120 120" class="progress-ring">
-                  <circle class="progress-ring-bg" cx="60" cy="60" r="54"></circle>
-                  <path class="progress-ring-arc learning" d="${this.describeArc(
-                    60,
-                    60,
-                    54,
-                    0,
-                    learningArcEnd
-                  )}"></path>
-                  <path class="progress-ring-arc known" d="${this.describeArc(
-                    60,
-                    60,
-                    54,
-                    learningArcEnd,
-                    knownArcEnd
-                  )}"></path>
-                </svg>
-                <div class="progress-text">${accuracy}%</div>
+          <div class="flashcard-results">
+              <div class="results-card" data-accuracy="${accuracy}">
+                  <h3 class="results-title">${title}</h3>
+                  <p class="results-subtitle">${subtitle}</p>
+                  
+                  <div class="results-progress-container">
+                      <div class="circular-progress">
+                          <svg width="150" height="150" viewBox="0 0 150 150">
+                              <circle class="progress-bg" cx="75" cy="75" r="${radius}"></circle>
+                              <circle class="progress-bar" cx="75" cy="75" r="${radius}"
+                                  stroke-dasharray="${circumference}" stroke-dashoffset="${circumference}" data-offset="${offset}">
+                              </circle>
+                          </svg>
+                          <div class="progress-text">
+                              <div class="progress-percentage">${accuracy}%</div>
+                          </div>
+                      </div>
+                      <div class="results-summary">
+                          <div class="summary-chip done">Know <span>${doneCount}</span></div>
+                          <div class="summary-chip not-done">Learning <span>${notDoneCount}</span></div>
+                      </div>
+                  </div>
+
+                  <div class="results-actions">
+                      <button class="restart-btn primary">Restart Deck</button>
+                      <button class="close-btn secondary">Close</button>
+                  </div>
               </div>
-              <div class="progress-bars">
-                <div class="bar-item"><div class="bar-label"><span class="bar-color-dot known"></span><span>Known</span></div><span class="bar-count">${totalKnownCount}</span></div>
-                <div class="bar-item"><div class="bar-label"><span class="bar-color-dot learning"></span><span>Still learning</span></div><span class="bar-count">${totalLearningCount}</span></div>
-              </div>
-            </div>
-            <button class="recall-last-btn" ${
-              this.progressHistory.length === 0 ? "disabled" : ""
-            }><i data-lucide="undo-2"></i> Back to the last question</button>
           </div>
-          <div class="results-footer">
-            <button class="results-btn secondary" id="review-btn" ${
-              totalLearningCount === 0 ? "disabled" : ""
-            }><div class="button-overlay"></div> <span>Keep reviewing ${totalLearningCount} terms</span></button>
-            <button class="results-btn tertiary" id="restart-btn">Restart Flashcards</button>
-          </div>
-          </div>
-        </div>
       </div>
     `;
   }
-
-  // --- ✨ NEW METHOD ---
-  reviewIncorrectCards() {
-    this.doneCards.forEach((cardId) =>
-      this.knownFromPreviousSession.add(cardId)
-    );
-    const incorrectCardIds = new Set(this.notDoneCards);
-    const reviewDeck = this.originalCards.filter((card) =>
-      incorrectCardIds.has(card.id)
-    );
-
-    if (reviewDeck.length > 0) {
-      this.data.cards = reviewDeck;
-      this.resetState(false);
-      this.updateUI();
-    }
-  }
-
-  // --- ✨ ADDED BACK: Your animation methods ---
   triggerBonusParticles() {
-    const resultsPage = document.querySelector(".results-page");
-    if (!resultsPage) return;
+    const resultsCard = document.querySelector(".results-card");
+    if (!resultsCard) return;
 
     const container = document.createElement("div");
     container.classList.add("celebration-container");
-    resultsPage.appendChild(container);
+    resultsCard.appendChild(container);
 
     const colors = ["#A8D0E6", "#F7D4A2", "#84DCC6", "#FFAAA5"];
 
+    // This creates the particle burst using anime.js
     for (let i = 0; i < 60; i++) {
       const particle = document.createElement("div");
       particle.classList.add("particle");
@@ -221,47 +225,44 @@ class NewFlashCard extends CardComponent {
         translateY: [0, anime.random(-100, 100)],
         duration: anime.random(1000, 2000),
         easing: "easeOutExpo",
-        complete: () => {
-          if (container.contains(particle)) container.removeChild(particle);
-        },
+        complete: () => container.removeChild(particle),
       });
     }
 
     setTimeout(() => {
-      if (resultsPage.contains(container)) {
-        resultsPage.removeChild(container);
+      if (resultsCard.contains(container)) {
+        resultsCard.removeChild(container);
       }
     }, 2500);
   }
-
   triggerResultsCelebration(score) {
-    this.completionSound.play();
+    // Ensure the <dotlottie-player> component is loaded
     if (typeof customElements.get("dotlottie-player") === "undefined") {
       console.error("DotLottie player not loaded.");
       return;
     }
+
     let lottiePath = "";
+
+    // --- Select the animation based on score ---
     if (score >= 90) {
+      // IMPORTANT: Change to your "grand" animation file path
       lottiePath = "../../../assets/animations/Confetti-3.lottie";
     } else if (score >= 60) {
+      // IMPORTANT: Change to your "simple" animation file path
       lottiePath = "../../../assets/animations/Confetti-2.lottie";
     } else {
-      return;
+      return; // No animation for low scores
     }
 
     const lottiePlayer = document.createElement("dotlottie-player");
     lottiePlayer.src = lottiePath;
     lottiePlayer.setAttribute("autoplay", true);
-    lottiePlayer.style.position = "fixed";
-    lottiePlayer.style.top = "0";
-    lottiePlayer.style.left = "0";
-    lottiePlayer.style.width = "100%";
-    lottiePlayer.style.height = "100%";
-    lottiePlayer.style.zIndex = "9999";
-    lottiePlayer.style.pointerEvents = "none";
 
+    // Append to the body for a full-screen effect
     document.body.appendChild(lottiePlayer);
 
+    // Add an event listener to automatically remove the player when it's done
     lottiePlayer.addEventListener("complete", () => {
       if (document.body.contains(lottiePlayer)) {
         document.body.removeChild(lottiePlayer);
@@ -269,180 +270,33 @@ class NewFlashCard extends CardComponent {
     });
   }
 
-  // --- ✨ REWRITTEN METHOD to call animations ---
-  attachResultsListeners() {
-    const reviewBtn = document.getElementById("review-btn");
-    const restartBtn = document.getElementById("restart-btn");
-    const recallBtn = document.querySelector(".recall-last-btn");
-    const resultsPage = document.querySelector(".results-page");
-
-    if (reviewBtn) {
-      reviewBtn.addEventListener("click", () => this.reviewIncorrectCards());
-    }
-    if (restartBtn) {
-      restartBtn.addEventListener("click", () => {
-        this.resetState(true);
-        this.updateUI();
-      });
-    }
-    if (recallBtn) {
-      recallBtn.addEventListener("click", () => this.recallCard());
-    }
-
-    if (resultsPage) {
-      const accuracy = parseInt(resultsPage.dataset.accuracy, 10);
-      if (!isNaN(accuracy)) {
-        // 1. Animate the progress ring arcs
-        const learningArc = resultsPage.querySelector(
-          ".progress-ring-arc.learning"
-        );
-        const knownArc = resultsPage.querySelector(".progress-ring-arc.known");
-
-        [learningArc, knownArc].forEach((arc) => {
-          if (arc) {
-            const length = arc.getTotalLength();
-            arc.style.strokeDasharray = length;
-            arc.style.strokeDashoffset = length;
-            anime({
-              targets: arc,
-              strokeDashoffset: [length, 0],
-              duration: 1500,
-              easing: "easeInOutSine",
-              delay: 200,
-            });
-          }
-        });
-        // 2. Animate the count-up for Known and Still Learning
-        const barItems = resultsPage.querySelectorAll(".bar-item");
-        anime({
-          targets: barItems,
-          opacity: [0, 1],
-          translateY: [20, 0], // Slide up from below
-          delay: anime.stagger(150, { start: 400 }), // Stagger the animation of each bar
-          duration: 800,
-          easing: "easeOutExpo",
-        });
-        // 3. Trigger the celebration Lottie/particle animations
-        setTimeout(() => {
-          this.triggerResultsCelebration(accuracy);
-          if (accuracy >= 90) {
-            this.triggerBonusParticles();
-          }
-        }, 500);
-      }
-    }
-  }
-
-  // --- ALL YOUR OTHER METHODS ARE PRESERVED BELOW ---
-  render() {
-    if (this.currentIndex >= this.data.cards.length) {
-      return this.renderResults();
-    }
-    const canRecall = this.progressHistory.length > 0;
-    const completedCount = this.doneCards.size + this.notDoneCards.size;
-    const totalCards = this.data.cards.length;
-
-    return `
-      <div class="card new-flashcard-set" id="card-${this.data.id}">
-        <div class="card-content">
-          <div class="new-flashcard-header">
-           <div class="deck-info">
-                <h4 class="deck-title">${this.data.title}</h4>
-                <p class="deck-subtitle">${this.data.subtitle}</p>
-            </div>
-            <div class="progress-bar-container">
-              <div class="progress-bar-unified">
-                <div class="progress-bar-unified-fill" style="width: ${
-                  totalCards > 0 ? (completedCount / totalCards) * 100 : 0
-                }%"></div>
-              </div>
-            </div>
-            <div class="header-controls">
-              <div class="streak-counter-container"></div>
-              <div class="card-counter">${completedCount} / ${totalCards}</div>
-            </div>
-          </div>
-          <div class="new-flashcard-stack-container">
-            <div class="new-flashcard-stack">
-              ${this.data.cards
-                .map((card, index) => this.renderCard(card, index))
-                .join("")}
-            </div>
-          </div>
-        </div>
-        <div class="swipe-glow left-glow"></div>
-        <div class="swipe-glow right-glow"></div>
-        <button class="autoplay-btn ${
-          this.autoPlay ? "active" : ""
-        }" id="autoplay-btn-${this.data.id}">
-          <i data-lucide="${this.autoPlay ? "pause" : "play"}"></i>
-        </button>
-        <button class="recall-btn" id="recall-btn-${this.data.id}" ${
-      !canRecall ? "disabled" : ""
-    }>
-          <i data-lucide="undo-2"></i>
-        </button>
-      </div>
-    `;
-  }
-
-  renderCard(card, index) {
-    const isFavorited = this.favoritedCards.has(card.id);
-    const iconName = this.getIconName(card.icon);
-    const typeIconName = this.getTypeIconName(card.type);
-    const gradient = card.styles.gradient || ["#FFFFFF", "#E0E0E0"];
-    const textColor = card.styles.textColor || "#111827";
-    const cardFaceStyle = `style="background-image: linear-gradient(to bottom right, ${gradient[0]}, ${gradient[1]}); color: ${textColor};"`;
-    const frontStyle = `style="--card-text-color: ${textColor}; background-image: linear-gradient(to bottom right, ${gradient[0]}, ${gradient[1]}); color: ${textColor};"`;
-    const offset = Math.min(index - this.currentIndex, 2) * 10;
-    const scale = 1 - Math.min(index - this.currentIndex, 2) * 0.05;
-    const cardStyle = `style="z-index: ${
-      this.data.cards.length - index
-    }; transform: translateY(${offset}px) scale(${scale});"`;
-
-    return `
-      <div class="new-flashcard-slide" data-index="${index}" data-id="${
-      card.id
-    }" ${cardStyle}>
-        <div class="new-flashcard-flipper">
-          <div class="new-flashcard-front" ${frontStyle}>
-            <div class="card-background-icon"><i data-lucide="${typeIconName}"></i></div>
-            <div class="card-type-label"><i data-lucide="${iconName}"></i><span>${
-      card.type
-    }</span></div>
-            <div class="card-main-content">
-              <h3>${card.front.title}</h3>
-              <p>${card.front.description}</p>
-            </div>
-            <button class="tts-btn"><i data-lucide="volume-2"></i></button>
-            <button class="favorite-btn ${
-              isFavorited ? "favorited" : ""
-            }"><i data-lucide="heart"></i></button>
-          </div>
-          <div class="new-flashcard-back" ${cardFaceStyle}>
-            <div class="card-main-content">
-              <h3>${card.back.title}</h3>
-              <p>${card.back.description}</p>
-            </div>
-            <button class="tts-btn"><i data-lucide="volume-2"></i></button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
   speakText(text) {
     if ("speechSynthesis" in window && text) {
+      // Cancel any currently playing speech to avoid overlap
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
+      // You can configure utterance.voice, utterance.rate, etc. here if needed
       window.speechSynthesis.speak(utterance);
     }
   }
 
   getIconName(apiIcon) {
+    // console.log(apiIcon);
     return apiIcon;
+    if (typeof apiIcon !== "string" || !apiIcon) {
+      return "box";
+    }
+    const iconMap = {
+      shapes: "gem",
+      sparkles: "sparkles",
+      brain: "brain",
+      tip: "lightbulb",
+      insight: "brain",
+    };
+    return iconMap[apiIcon.trim().toLowerCase()] || "box";
   }
   getTypeIconName(apiIcon) {
+    // console.log(apiIcon);
     if (typeof apiIcon !== "string" || !apiIcon) {
       return "box";
     }
@@ -455,45 +309,79 @@ class NewFlashCard extends CardComponent {
     return iconMap[apiIcon.trim().toLowerCase()] || "box";
   }
 
+  // --- NEW: Add this entire method to your class ---
   _animateCardEntry() {
     const componentRoot = document.getElementById(`card-${this.data.id}`);
     if (!componentRoot) return;
+
     const cards = componentRoot.querySelectorAll(".new-flashcard-slide");
     if (!cards.length) return;
+
+    // Instantly set the starting position of the cards (fanned out and invisible)
+    // The final stack position is already set by the inline styles from render()
     const baseAngle = 5;
     anime.set(cards, {
       opacity: 0,
-      translateY: 60,
-      rotate: (el, i) =>
-        i === this.currentIndex
-          ? baseAngle * (i + 1) - 120
-          : baseAngle * (i + 1),
+      translateY: (el, i) => {
+        // Start them lower down
+        return 60;
+      },
+      rotate: (el, i) => {
+        // Fan them out slightly
+        // const middle = Math.floor(cards.length / 2);
+        // return (i - middle) * baseAngle;
+        if (i === this.currentIndex) return baseAngle * (i + 1) - 120;
+        return baseAngle * (i + 1);
+      },
     });
+
+    // Animate the cards to their final position
     anime({
       targets: cards,
       opacity: 1,
-      rotate: 0,
-      translateY: (el, i) => Math.min(i - this.currentIndex, 2) * 10,
-      scale: (el, i) => 1 - Math.min(i - this.currentIndex, 2) * 0.05,
+      rotate: 0, // Straighten the cards
+      // Animate to the final translateY/scale values from the inline style
+      translateY: (el, i) => {
+        const offset = Math.min(i - this.currentIndex, 2) * 10;
+        return offset;
+      },
+      scale: (el, i) => {
+        const scale = 1 - Math.min(i - this.currentIndex, 2) * 0.05;
+        return scale;
+      },
+      // Stagger the animation of each card for a nice flowing effect
+      // delay: (el, i) => i * 100,
       delay: anime.stagger(100, { easing: "easeOutQuad" }),
       duration: 800,
-      easing: "easeOutQuint",
+      easing: "easeOutQuint", // A smooth easing function
     });
   }
-
   _animateCardRecall() {
     const componentRoot = document.getElementById(`card-${this.data.id}`);
     if (!componentRoot) return;
+
     const cards = componentRoot.querySelectorAll(".new-flashcard-slide");
     if (!cards.length) return;
+
     const card = cards[this.currentIndex];
     if (!card) return;
+
+    // console.log(this.currentStatus);
+
+    // Optionally: Set starting position if recalling from off-screen
+    // Uncomment if needed based on your logic
+    // anime.set(card, {
+    //   translateX: fromLeft ? -window.innerWidth : window.innerWidth,
+    //   rotate: fromLeft ? -30 : 30,
+    // });
     anime.set(card, {
       translateX: this.currentStatus ? 100 : -100,
       translateY: 10,
       rotate: this.currentStatus ? 10 : -10,
       opacity: 0,
     });
+
+    // Animate back to center
     anime({
       opacity: 1,
       targets: card,
@@ -507,14 +395,13 @@ class NewFlashCard extends CardComponent {
   }
 
   attachEventListeners(recall = false) {
-    if (this.currentIndex >= this.data.cards.length) {
-      this.attachResultsListeners();
-      lucide.createIcons();
-      return;
-    }
-
     if (!recall) this._animateCardEntry();
     else this._animateCardRecall();
+
+    if (this.currentIndex >= this.data.cards.length) {
+      this.attachResultsListeners();
+      return;
+    }
 
     const componentRoot = document.getElementById(`card-${this.data.id}`);
     if (!componentRoot) return;
@@ -572,63 +459,98 @@ class NewFlashCard extends CardComponent {
       this.toggleAutoPlay();
     });
 
+    // Remove global touch handler for stopping auto-play
+    // Only stop auto-play if a card is touched/swiped
     cards.forEach((card, index) => {
       if (index < this.currentIndex) card.style.display = "none";
+
       if (index === this.currentIndex) {
         this.attachInteractiveListeners(card);
+        // Add touch/swipe handler to stop auto-play
         card.addEventListener("touchstart", () => {
-          if (this.autoPlay) this.stopAutoPlay();
+          if (this.autoPlay) {
+            this.stopAutoPlay();
+          }
         });
         card.addEventListener("pointerdown", () => {
-          if (this.autoPlay) this.stopAutoPlay();
+          if (this.autoPlay) {
+            this.stopAutoPlay();
+          }
         });
       }
     });
   }
 
   attachInteractiveListeners(card) {
+    const componentRoot = document.getElementById(`card-${this.data.id}`);
     const flipper = card.querySelector(".new-flashcard-flipper");
     const favoriteBtn = card.querySelector(".favorite-btn");
     const ttsBtnFront = card.querySelector(".new-flashcard-front .tts-btn");
     const ttsBtnBack = card.querySelector(".new-flashcard-back .tts-btn");
-    const componentRoot = document.getElementById(`card-${this.data.id}`);
     const leftGlow = componentRoot.querySelector(".left-glow");
     const rightGlow = componentRoot.querySelector(".right-glow");
 
+    // Stop autoplay on any card interaction (flip, swipe, etc)
+    const stopAutoplayIfNeeded = () => {
+      if (this.autoPlay) this.stopAutoPlay();
+    };
+
     flipper.addEventListener("click", (e) => {
-      if (!e.target.closest(".favorite-btn"))
+      stopAutoplayIfNeeded();
+      if (!e.target.closest(".favorite-btn")) {
         flipper.classList.toggle("flipped");
+      }
     });
+
     favoriteBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       const cardId = card.dataset.id;
-      if (this.favoritedCards.has(cardId)) this.favoritedCards.delete(cardId);
-      else this.favoritedCards.add(cardId);
+      if (this.favoritedCards.has(cardId)) {
+        this.favoritedCards.delete(cardId);
+      } else {
+        this.favoritedCards.add(cardId);
+      }
       e.currentTarget.classList.toggle("favorited");
     });
+
     ttsBtnFront.addEventListener("click", (e) => {
-      e.stopPropagation();
+      e.stopPropagation(); // Prevent card from flipping
+      stopAutoplayIfNeeded();
       const cardData = this.data.cards[card.dataset.index];
       this.speakText(cardData.front.title);
     });
+
     ttsBtnBack.addEventListener("click", (e) => {
-      e.stopPropagation();
+      e.stopPropagation(); // Prevent card from flipping
+      stopAutoplayIfNeeded();
       const cardData = this.data.cards[card.dataset.index];
       this.speakText(cardData.back.description);
     });
 
     const hammertime = new Hammer(card);
+
     hammertime.on("pan", (ev) => {
+      stopAutoplayIfNeeded();
       flipper.classList.add("is-panning");
       const rotation = ev.deltaX / 20;
+      // We are reverting to the original logic that allows diagonal movement
       flipper.style.transform = `translate(${ev.deltaX}px, ${ev.deltaY}px) rotate(${rotation}deg)`;
+
       rightGlow.style.opacity = Math.max(0, ev.deltaX / 100);
       leftGlow.style.opacity = Math.max(0, -ev.deltaX / 100);
     });
+
     hammertime.on("panend", (ev) => {
+      stopAutoplayIfNeeded();
       flipper.classList.remove("is-panning");
+      // rightGlow.style.opacity = 0;
+      // leftGlow.style.opacity = 0;
+
       const threshold = 100;
       if (Math.abs(ev.deltaX) > threshold) {
+        // SUCCESSFUL SWIPE
+        // We REMOVED the lines that set glow opacity to 0 from here.
+        // The glow will now stay visible as the card animates away.
         const moveOutWidth = window.innerWidth * 1.5;
         const isDone = ev.deltaX > 0;
         this.currentStatus = isDone;
@@ -636,8 +558,11 @@ class NewFlashCard extends CardComponent {
         card.style.transform = `translate(${endX}px, ${
           ev.deltaY * 2
         }px) rotate(${ev.deltaX / 10}deg)`;
+
         this.nextCard(isDone);
       } else {
+        // FAILED SWIPE
+        // We still hide the glow when the card snaps back to center.
         rightGlow.style.opacity = 0;
         leftGlow.style.opacity = 0;
         flipper.style.transform = "";
@@ -645,9 +570,83 @@ class NewFlashCard extends CardComponent {
     });
   }
 
+  attachResultsListeners() {
+    const restartBtn = document.querySelector(".restart-btn");
+    const closeBtn = document.querySelector(".close-btn");
+
+    if (restartBtn) {
+      restartBtn.addEventListener("click", () => {
+        this.resetState();
+        this.updateUI();
+      });
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        document.getElementById("card-display-area").innerHTML =
+          '<div class="placeholder"><i data-lucide="mouse-pointer-click"></i><h2>Welcome!</h2><p>Open the menu to select a user action.</p></div>';
+        lucide.createIcons();
+      });
+    }
+
+    if (window.anime) {
+      const resultsCard = document.querySelector(".results-card");
+      const progressBar = resultsCard.querySelector(".progress-bar");
+      const finalOffset = progressBar.dataset.offset;
+      const accuracy = parseInt(resultsCard.dataset.accuracy, 10);
+
+      const tl = anime.timeline({
+        easing: "spring(1, 80, 10, 0)", // Use a bouncy spring easing
+        duration: 800,
+      });
+
+      tl.add({
+        targets: ".results-card",
+        scale: [0.8, 1],
+        opacity: [0, 1],
+      })
+        .add(
+          {
+            targets: ".results-title, .results-subtitle",
+            translateY: [20, 0],
+            opacity: [0, 1],
+            delay: anime.stagger(100, { easing: "easeOutQuad" }),
+          },
+          "-=600"
+        )
+        .add(
+          {
+            targets: progressBar,
+            strokeDashoffset: [anime.setDashoffset, finalOffset],
+            opacity: 1,
+            duration: 1500,
+            easing: "easeInOutCirc",
+          },
+          "-=500"
+        )
+        .add(
+          {
+            targets: ".results-summary .summary-chip, .results-actions button",
+            translateY: [20, 0],
+            opacity: [0, 1],
+            delay: anime.stagger(100, { easing: "easeOutQuad" }),
+          },
+          "-=1200"
+        );
+
+      // Trigger the score-based celebration after a short delay
+      setTimeout(() => {
+        this.triggerResultsCelebration(accuracy);
+        if (accuracy >= 90) {
+          this.triggerBonusParticles();
+        }
+      }, 500);
+    }
+  }
+
   nextCard(isDone) {
     if (this.currentIndex < this.data.cards.length) {
       setTimeout(() => {
+        // Find the current glow elements at the moment of fade-out
         const componentRoot = document.getElementById(`card-${this.data.id}`);
         if (componentRoot) {
           const leftGlow = componentRoot.querySelector(".left-glow");
@@ -659,18 +658,29 @@ class NewFlashCard extends CardComponent {
 
       const card = this.data.cards[this.currentIndex];
       const cardId = card.id;
+
+      // 1. Add the latest swipe to our progress history
       const impression = isDone ? "right" : "left";
       this.progressHistory.push({ card_id: cardId, impression: impression });
 
+      // 2. Prepare the payload for the API
       const payload = {
         userId: localStorage.getItem("user_id"),
         appId: localStorage.getItem("app_id"),
         interactionId: this.interactionId,
         progress: this.progressHistory,
-        currentIndex: this.currentIndex + 1,
-        completed: false,
+        currentIndex: this.currentIndex + 1, // API wants the *next* index
+        completed: false, // Not completed yet
       };
+
+      // 3. Call the tracking function (it runs in the background)
       ApiService.updateActivityProgress(payload);
+
+      // this.swipeHistory.push({
+      //   cardId,
+      //   wasDone: this.doneCards.has(cardId),
+      //   wasNotDone: this.notDoneCards.has(cardId),
+      // });
 
       if (isDone) {
         this.doneCards.add(cardId);
@@ -773,7 +783,7 @@ class NewFlashCard extends CardComponent {
     if (header && header.classList.contains("is-on-fire")) {
       streakMessage.classList.add("on-fire");
     }
-    streakMessage.innerHTML = `${this.correctStreak} IN A ROW <i data-lucide="flame" class="streak-flame"></i>`;
+    streakMessage.innerHTML = `${this.correctStreak} in a row! <i data-lucide="flame" class="streak-flame"></i>`;
     container.appendChild(streakMessage);
     lucide.createIcons(); // Render the new flame icon
 
@@ -787,18 +797,19 @@ class NewFlashCard extends CardComponent {
       easing: "easeOutExpo",
     });
   }
-
   animateNextCard() {
     if (this.currentIndex >= this.data.cards.length) {
-      this.updateUI();
+      this.updateUI(); // Re-render for results page
       return;
     }
+
     const newTopCard = document.querySelector(
       `.new-flashcard-slide[data-index="${this.currentIndex}"]`
     );
     const cardBelow = document.querySelector(
       `.new-flashcard-slide[data-index="${this.currentIndex + 1}"]`
     );
+
     if (newTopCard) {
       anime({
         targets: newTopCard,
@@ -806,7 +817,9 @@ class NewFlashCard extends CardComponent {
         scale: 1,
         duration: 400,
         easing: "easeOutQuint",
-        complete: () => this.attachInteractiveListeners(newTopCard),
+        complete: () => {
+          this.attachInteractiveListeners(newTopCard);
+        },
       });
     }
     if (cardBelow) {
@@ -820,7 +833,6 @@ class NewFlashCard extends CardComponent {
     }
     this.updateHeaderUI();
   }
-
   triggerMidwayCelebration() {
     const cardContainer = document.getElementById(`card-${this.data.id}`);
     if (!cardContainer) return;
@@ -893,14 +905,20 @@ class NewFlashCard extends CardComponent {
       });
     }
   }
-
   updateHeaderUI() {
     const cardSetElement = document.getElementById(`card-${this.data.id}`);
     if (!cardSetElement) return;
+
+    // --- 1. SCORE LOGIC UPDATE ---
+    // Progress is now based on cards answered, not the current index.
     const completedCount = this.doneCards.size + this.notDoneCards.size;
     const totalCards = this.data.cards.length;
+
     const counter = cardSetElement.querySelector(".card-counter");
-    if (counter) counter.textContent = `${completedCount} / ${totalCards}`;
+    if (counter) {
+      counter.textContent = `${completedCount} / ${totalCards}`;
+    }
+
     const progressBarFill = cardSetElement.querySelector(
       ".progress-bar-unified-fill"
     );
@@ -909,31 +927,51 @@ class NewFlashCard extends CardComponent {
         totalCards > 0 ? (completedCount / totalCards) * 100 : 0;
       progressBarFill.style.width = `${percentage}%`;
     }
+
+    // --- 2. "ON FIRE" MODE LOGIC ---
+    // Check if 50% or more cards are marked correct.
     const progressBar = cardSetElement.querySelector(".progress-bar-unified");
     if (progressBar) {
       const correctPercentage =
         totalCards > 0 ? this.doneCards.size / totalCards : 0;
-      if (correctPercentage >= 0.5) progressBar.classList.add("is-on-fire");
-      else progressBar.classList.remove("is-on-fire");
+      if (correctPercentage >= 0.5) {
+        progressBar.classList.add("is-on-fire");
+      } else {
+        progressBar.classList.remove("is-on-fire");
+      }
     }
+
     const header = cardSetElement.querySelector(".new-flashcard-header");
     if (header) {
       const correctPercentage =
         totalCards > 0 ? this.doneCards.size / totalCards : 0;
-      if (correctPercentage >= 0.5) header.classList.add("is-on-fire");
-      else header.classList.remove("is-on-fire");
+      if (correctPercentage >= 0.5) {
+        header.classList.add("is-on-fire");
+      } else {
+        header.classList.remove("is-on-fire");
+      }
     }
-    const recallBtn = cardSetElement.querySelector(".recall-btn");
-    if (recallBtn) recallBtn.disabled = this.progressHistory.length === 0;
-  }
 
+    const recallBtn = cardSetElement.querySelector(".recall-btn");
+    if (recallBtn) {
+      recallBtn.disabled = this.progressHistory.length === 0;
+    }
+  }
   recallCard() {
     if (this.progressHistory.length > 0) {
+      // Full re-render is simplest for recall
       const lastAction = this.progressHistory.pop();
       const cardId = lastAction.card_id;
-      if (lastAction.impression === "right") this.doneCards.delete(cardId);
-      else this.notDoneCards.delete(cardId);
+
+      if (lastAction.impression === "right") {
+        this.doneCards.delete(cardId);
+      } else {
+        this.notDoneCards.delete(cardId);
+      }
+      // 3. Revert the currentIndex
       this.currentIndex--;
+
+      // 4. Update the API with the new, reverted state
       const payload = {
         userId: localStorage.getItem("user_id"),
         appId: localStorage.getItem("app_id"),
@@ -943,6 +981,8 @@ class NewFlashCard extends CardComponent {
         completed: false,
       };
       ApiService.updateActivityProgress(payload);
+
+      // 5. Re-render the UI
       this.updateUI(true, true);
     }
   }
@@ -955,11 +995,15 @@ class NewFlashCard extends CardComponent {
       lucide.createIcons();
       this.attachEventListeners(recall);
     }
-    this.updateAutoPlayButton();
+    this.updateAutoPlayButton(); // Ensure icon is always in sync
+    // Enable/disable floating recall button based on swipeHistory
     const recallBtn = document.getElementById(`recall-btn-${this.data.id}`);
     if (recallBtn) {
       recallBtn.disabled = this.progressHistory.length === 0;
-      if (recallBounce) {
+    }
+    if (recallBounce) {
+      // Bounce the recall button after re-render
+      if (recallBtn) {
         recallBtn.classList.remove("bounce");
         void recallBtn.offsetWidth;
         recallBtn.classList.add("bounce");
@@ -968,14 +1012,19 @@ class NewFlashCard extends CardComponent {
   }
 
   toggleAutoPlay() {
-    if (this.autoPlay) this.stopAutoPlay();
-    else this.startAutoPlay();
+    if (this.autoPlay) {
+      this.stopAutoPlay();
+    } else {
+      this.startAutoPlay();
+    }
   }
+
   startAutoPlay() {
     this.autoPlay = true;
     this.updateAutoPlayButton();
     this.autoPlayNextCard();
   }
+
   stopAutoPlay() {
     this.autoPlay = false;
     if (this.autoPlayInterval) {
@@ -984,21 +1033,25 @@ class NewFlashCard extends CardComponent {
     }
     this.updateAutoPlayButton();
   }
+
   updateAutoPlayButton() {
     const autoplayBtn = document.querySelector(`#autoplay-btn-${this.data.id}`);
     if (autoplayBtn) {
       autoplayBtn.classList.toggle("active", this.autoPlay);
+      // Set icon directly for immediate update
       autoplayBtn.innerHTML = `<i data-lucide='${
         this.autoPlay ? "pause" : "play"
       }'></i>`;
       lucide.createIcons();
     }
   }
+
   autoPlayNextCard() {
     if (!this.autoPlay || this.currentIndex >= this.data.cards.length) {
       this.stopAutoPlay();
       return;
     }
+
     const currentCard = document.querySelector(
       `.new-flashcard-slide[data-index="${this.currentIndex}"]`
     );
@@ -1006,22 +1059,36 @@ class NewFlashCard extends CardComponent {
       this.stopAutoPlay();
       return;
     }
+
     const flipper = currentCard.querySelector(".new-flashcard-flipper");
+
+    // Check if card is flipped (showing back)
     const isFlipped = flipper.classList.contains("flipped");
+
     if (!isFlipped) {
+      // Flip the card to show back
       flipper.classList.add("flipped");
+      // Wait 2 seconds then swipe left
       this.autoPlayInterval = setTimeout(() => {
         this.autoPlaySwipeLeft(currentCard);
       }, 2000);
     } else {
+      // Card is already flipped, swipe left immediately
       this.autoPlaySwipeLeft(currentCard);
     }
   }
+
   autoPlaySwipeLeft(currentCard) {
     if (!this.autoPlay) return;
+
+    // Simulate swipe left (not done)
     const moveOutWidth = window.innerWidth * 1.5;
     currentCard.style.transform = `translate(${-moveOutWidth}px, 0px) rotate(-10deg)`;
+
+    // Process the card as not done
     this.nextCard(false);
+
+    // Continue with next card after animation
     setTimeout(() => {
       this.autoPlayNextCard();
     }, 400);
@@ -1029,21 +1096,31 @@ class NewFlashCard extends CardComponent {
 
   applyProgress(progressData) {
     if (!progressData) return;
+
     console.log("Applying restored progress:", progressData);
+
     this.currentIndex = progressData.current_index || 0;
     this.progressHistory = progressData.progress || [];
+
+    // Clear and re-populate the done/not-done sets from the history
     this.doneCards.clear();
     this.notDoneCards.clear();
     this.progressHistory.forEach((item) => {
-      if (item.impression === "right") this.doneCards.add(item.card_id);
-      else this.notDoneCards.add(item.card_id);
+      if (item.impression === "right") {
+        this.doneCards.add(item.card_id);
+      } else {
+        this.notDoneCards.add(item.card_id);
+      }
     });
+
+    // If the session was already completed, go straight to the results screen
     if (progressData.completed) {
       const cardDisplayArea = document.getElementById("card-display-area");
       cardDisplayArea.innerHTML = this.renderResults();
       this.attachResultsListeners();
       lucide.createIcons();
     } else {
+      // Otherwise, update the UI to the restored state (progress bar, etc.)
       this.updateUI();
     }
   }
