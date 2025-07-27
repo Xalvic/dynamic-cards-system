@@ -399,4 +399,48 @@ const ApiService = {
       return null;
     }
   },
+
+  /**
+   * NEW: Tracks when a user opens a notification link.
+   * @param {string} userId
+   * @param {string} appId
+   * @param {string} interactionId
+   * @returns {Promise<object|null>}
+   */
+  async trackNotificationOpen(userId, appId, interactionId) {
+    const apiUrl =
+      "https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/interaction/activity";
+
+    const requestBody = {
+      user_id: userId,
+      app_id: appId,
+      user_interaction_id: interactionId,
+      user_activity: {
+        notification: {
+          user_status: "opened",
+        },
+      },
+    };
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          "Notification open tracking failed: " + response.statusText
+        );
+      }
+
+      const result = await response.json();
+      console.log("✅ Notification open tracked successfully:", result);
+      return result;
+    } catch (error) {
+      console.error("❌ Failed to track notification open:", error);
+      return null;
+    }
+  },
 };

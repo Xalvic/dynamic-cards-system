@@ -178,6 +178,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // GET INTERACTION ID AND PASS TO API
   if (urlParams.has("interaction_id")) {
+    ApiService.trackNotificationOpen(userId, appId, urlParams.get("interaction_id"));
     renderCards(urlParams.get("interaction_id"));
   }
 
@@ -237,7 +238,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (matchingInteraction && matchingInteraction.user_activity) {
           try {
             console.log(matchingInteraction.user_activity);
-            const activity = matchingInteraction.user_activity;
+            const activity = JSON.parse(matchingInteraction.user_activity);
             const progressData = activity.activities[0];
 
             // --- ✨ NEW: Check the interaction type before applying progress ---
