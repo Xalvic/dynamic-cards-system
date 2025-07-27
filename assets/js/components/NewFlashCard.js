@@ -2,13 +2,15 @@ class NewFlashCard extends CardComponent {
   constructor(data) {
     super(data);
     this.data = data;
+    this.interactionId = data.interactionId;
     this.resetState();
   }
 
   resetState() {
     this.currentIndex = 0;
     this.currentStatus = false;
-    this.swipeHistory = [];
+    // this.swipeHistory = [];
+    this.progressHistory = [];
     this.favoritedCards = new Set();
     this.doneCards = new Set();
     this.notDoneCards = new Set();
@@ -19,10 +21,11 @@ class NewFlashCard extends CardComponent {
   }
 
   render() {
+    console.log(this.data);
     if (this.currentIndex >= this.data.cards.length) {
       return this.renderResults();
     }
-    const canRecall = this.swipeHistory.length > 0;
+    const canRecall = this.progressHistory.length > 0;
     const completedCount = this.doneCards.size + this.notDoneCards.size;
     const totalCards = this.data.cards.length;
 
@@ -30,7 +33,13 @@ class NewFlashCard extends CardComponent {
             <div class="card new-flashcard-set" id="card-${this.data.id}">
                 <div class="card-content">
                     <div class="new-flashcard-header">
+                     <div class="deck-info">
+                            <h4 class="deck-title">${this.data.title}</h4>
+                            <p class="deck-subtitle">${this.data.subtitle}</p>
+                        </div>
+
                         <div class="progress-bar-container">
+                            <div class="streak-counter-container"></div>
                             <div class="progress-bar-unified">
                                 <div class="progress-bar-unified-fill" style="width: ${
                                   totalCards > 0
@@ -121,6 +130,16 @@ class NewFlashCard extends CardComponent {
   }
 
   renderResults() {
+    const payload = {
+      userId: localStorage.getItem("user_id"),
+      appId: localStorage.getItem("app_id"),
+      interactionId: this.interactionId,
+      progress: this.progressHistory,
+      currentIndex: this.currentIndex,
+      completed: true, // Mark as completed
+    };
+    ApiService.updateActivityProgress(payload);
+
     const total = this.data.cards.length;
     const doneCount = this.doneCards.size;
     const notDoneCount = this.notDoneCards.size;
@@ -637,18 +656,36 @@ class NewFlashCard extends CardComponent {
         }
       }, 200);
 
-      const cardId = this.data.cards[this.currentIndex].id;
-      this.swipeHistory.push({
-        cardId,
-        wasDone: this.doneCards.has(cardId),
-        wasNotDone: this.notDoneCards.has(cardId),
-      });
+      const card = this.data.cards[this.currentIndex];
+      const cardId = card.id;
+
+      // 1. Add the latest swipe to our progress history
+      const impression = isDone ? "right" : "left";
+      this.progressHistory.push({ card_id: cardId, impression: impression });
+
+      // 2. Prepare the payload for the API
+      const payload = {
+        userId: localStorage.getItem("user_id"),
+        appId: localStorage.getItem("app_id"),
+        interactionId: this.interactionId,
+        progress: this.progressHistory,
+        currentIndex: this.currentIndex + 1, // API wants the *next* index
+        completed: false, // Not completed yet
+      };
+
+      // 3. Call the tracking function (it runs in the background)
+      ApiService.updateActivityProgress(payload);
+
+      // this.swipeHistory.push({
+      //   cardId,
+      //   wasDone: this.doneCards.has(cardId),
+      //   wasNotDone: this.notDoneCards.has(cardId),
+      // });
 
       if (isDone) {
         this.doneCards.add(cardId);
         this.notDoneCards.delete(cardId);
         this.triggerProgressBarParticles();
-
         this.correctStreak++;
         if (this.correctStreak > 0 && this.correctStreak % 3 === 0) {
           this.triggerMidwayCelebration();
@@ -660,6 +697,7 @@ class NewFlashCard extends CardComponent {
       }
       this.currentIndex++;
       this.animateNextCard();
+      this.handleStreakUpdate();
     }
   }
 
@@ -723,7 +761,42 @@ class NewFlashCard extends CardComponent {
       }
     }, 1400);
   }
+  handleStreakUpdate() {
+    const container = document.querySelector(".streak-counter-container");
+    if (!container) return;
 
+    // Always remove the previous message to reset the animation
+    const oldMessage = container.querySelector(".streak-message");
+    if (oldMessage) {
+      container.removeChild(oldMessage);
+    }
+
+    // Only show the streak message for 2 or more correct answers in a row
+    if (this.correctStreak < 2) {
+      return;
+    }
+
+    // Create the new streak message element
+    const streakMessage = document.createElement("div");
+    streakMessage.className = "streak-message";
+    const header = document.querySelector(".new-flashcard-header");
+    if (header && header.classList.contains("is-on-fire")) {
+      streakMessage.classList.add("on-fire");
+    }
+    streakMessage.innerHTML = `${this.correctStreak} in a row! <i data-lucide="flame" class="streak-flame"></i>`;
+    container.appendChild(streakMessage);
+    lucide.createIcons(); // Render the new flame icon
+
+    // Animate the message into view using anime.js
+    anime({
+      targets: streakMessage,
+      translateY: [10, 0], // Move up from below
+      opacity: [0, 1],
+      scale: [0.95, 1],
+      duration: 500,
+      easing: "easeOutExpo",
+    });
+  }
   animateNextCard() {
     if (this.currentIndex >= this.data.cards.length) {
       this.updateUI(); // Re-render for results page
@@ -881,22 +954,36 @@ class NewFlashCard extends CardComponent {
 
     const recallBtn = cardSetElement.querySelector(".recall-btn");
     if (recallBtn) {
-      recallBtn.disabled = this.swipeHistory.length === 0;
+      recallBtn.disabled = this.progressHistory.length === 0;
     }
   }
   recallCard() {
-    if (this.swipeHistory.length > 0) {
+    if (this.progressHistory.length > 0) {
       // Full re-render is simplest for recall
-      const lastAction = this.swipeHistory.pop();
+      const lastAction = this.progressHistory.pop();
+      const cardId = lastAction.card_id;
+
+      if (lastAction.impression === "right") {
+        this.doneCards.delete(cardId);
+      } else {
+        this.notDoneCards.delete(cardId);
+      }
+      // 3. Revert the currentIndex
       this.currentIndex--;
 
-      if (lastAction.wasDone) this.doneCards.add(lastAction.cardId);
-      else this.doneCards.delete(lastAction.cardId);
+      // 4. Update the API with the new, reverted state
+      const payload = {
+        userId: localStorage.getItem("user_id"),
+        appId: localStorage.getItem("app_id"),
+        interactionId: this.interactionId,
+        progress: this.progressHistory,
+        currentIndex: this.currentIndex,
+        completed: false,
+      };
+      ApiService.updateActivityProgress(payload);
 
-      if (lastAction.wasNotDone) this.notDoneCards.add(lastAction.cardId);
-      else this.notDoneCards.delete(lastAction.cardId);
-
-      this.updateUI(true, true); // pass recallBounce flag
+      // 5. Re-render the UI
+      this.updateUI(true, true);
     }
   }
 
@@ -912,7 +999,7 @@ class NewFlashCard extends CardComponent {
     // Enable/disable floating recall button based on swipeHistory
     const recallBtn = document.getElementById(`recall-btn-${this.data.id}`);
     if (recallBtn) {
-      recallBtn.disabled = this.swipeHistory.length === 0;
+      recallBtn.disabled = this.progressHistory.length === 0;
     }
     if (recallBounce) {
       // Bounce the recall button after re-render
@@ -1005,5 +1092,36 @@ class NewFlashCard extends CardComponent {
     setTimeout(() => {
       this.autoPlayNextCard();
     }, 400);
+  }
+
+  applyProgress(progressData) {
+    if (!progressData) return;
+
+    console.log("Applying restored progress:", progressData);
+
+    this.currentIndex = progressData.current_index || 0;
+    this.progressHistory = progressData.progress || [];
+
+    // Clear and re-populate the done/not-done sets from the history
+    this.doneCards.clear();
+    this.notDoneCards.clear();
+    this.progressHistory.forEach((item) => {
+      if (item.impression === "right") {
+        this.doneCards.add(item.card_id);
+      } else {
+        this.notDoneCards.add(item.card_id);
+      }
+    });
+
+    // If the session was already completed, go straight to the results screen
+    if (progressData.completed) {
+      const cardDisplayArea = document.getElementById("card-display-area");
+      cardDisplayArea.innerHTML = this.renderResults();
+      this.attachResultsListeners();
+      lucide.createIcons();
+    } else {
+      // Otherwise, update the UI to the restored state (progress bar, etc.)
+      this.updateUI();
+    }
   }
 }

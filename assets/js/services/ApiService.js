@@ -250,4 +250,103 @@ const ApiService = {
     };
     return mockData[actionId] || null;
   },
+
+  // PROD FETCH API
+  async fetchCardsApi(userId, appId, interactionId) {
+    try {
+      const response = await fetch(
+        `https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/interaction/get?user_id=${userId}&app_id=${appId}&user_interaction_id=${interactionId}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok: " + response.statusText);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Fetch error:", error);
+      return null; // or throw error if you want caller to handle
+    }
+  },
+
+  // CARD INTERACTION
+  /**
+   * NEW FUNCTION: Tracks user activity for a flashcard session.
+   * @param {object} payload - The data to send to the API.
+   * @param {string} payload.userId
+   * @param {string} payload.appId
+   * @param {string} payload.interactionId
+   * @param {Array} payload.progress - History of card impressions.
+   * @param {number} payload.currentIndex
+   * @param {boolean} payload.completed
+   */
+  async updateActivityProgress(payload) {
+    const apiUrl =
+      "https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/interaction/activity";
+
+    const requestBody = {
+      user_id: payload.userId,
+      app_id: payload.appId,
+      user_interaction_id: payload.interactionId,
+      user_activity: {
+        activities: [
+          {
+            type: "flashcards",
+            progress: payload.progress,
+            current_index: payload.currentIndex,
+            completed: payload.completed,
+          },
+        ],
+      },
+    };
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          "Activity tracking request failed: " + response.statusText
+        );
+      }
+
+      const result = await response.json();
+      console.log("✅ Activity tracked successfully:", result);
+      return result;
+    } catch (error) {
+      console.error("❌ Failed to track activity:", error);
+      return null;
+    }
+  },
+
+  /**
+   * NEW FUNCTION: Fetches the list of all past user interactions.
+   * @param {string} userId
+   * @param {string} appId
+   * @returns {Promise<object|null>} The list of interactions or null on error.
+   */
+  async fetchInteractionList(userId, appId) {
+    const apiUrl = `https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/interaction/list?user_id=${userId}&app_id=${appId}`;
+
+    try {
+      const response = await fetch(apiUrl); // This is a GET request
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to fetch interaction list: " + response.statusText
+        );
+      }
+
+      const data = await response.json();
+      console.log("✅ Fetched interaction history:", data);
+      return data;
+    } catch (error) {
+      console.error("❌ Error fetching interaction list:", error);
+      return null;
+    }
+  },
 };

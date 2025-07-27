@@ -1,8 +1,99 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // --- THEME SETUP ---
+const firebaseConfig = {
+  apiKey: "AIzaSyAoX0Hpkkr4PUY8lHNyEagBPQqfYQlf3Ss",
+  authDomain: "streak-ria-01.firebaseapp.com",
+  projectId: "streak-ria-01",
+  storageBucket: "streak-ria-01.firebasestorage.app",
+  messagingSenderId: "550871367316",
+  appId: "1:550871367316:web:b485cf0cdc44ea352fbe81",
+  measurementId: "G-JF05EKZG7N",
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const messaging = firebase.messaging();
+
+let theToken = "";
+let userName = localStorage.getItem("username") || "John Doe";
+let appName = localStorage.getItem("appname") || "Yoga App";
+let userId = localStorage.getItem("user_id") || "user119";
+let appId = localStorage.getItem("app_id") || "app119";
+async function getTokenAndShow() {
+  const output = document.getElementById("output");
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      throw new Error("Notification permission not granted");
+    }
+
+    // Register service worker
+    const reg = await navigator.serviceWorker.register(
+      "../../firebase-messaging-sw.js"
+    );
+    console.log("Service Worker registered:", reg);
+
+    // Wait until SW is active
+    const readyReg = await navigator.serviceWorker.ready;
+    console.log("Service Worker ready:", readyReg);
+
+    // Get FCM token
+    const token = await messaging.getToken({
+      serviceWorkerRegistration: readyReg,
+      vapidKey:
+        "BHQyd_LW38dh-gEhTjGjX5UOp-rBcFr3I96DqcfKRlRuEYKWKm8_XKDbNLGD4xsInUKFDdFYYtD8Iv9uzeDL3lU",
+    });
+
+    theToken = token;
+    localStorage.setItem("card-fcm-token", token);
+    console.log("FCM token:", token);
+  } catch (err) {
+    console.error("Error:", err);
+  }
+}
+
+let userActions = ["Completed one stack!", "Completed 100 days of yoga!"];
+
+document.addEventListener("DOMContentLoaded", async () => {
+  function renderUserActions() {
+    let userActionsContainer = document.querySelector(".user-actions");
+    userActions.forEach((action) => {
+      let userAction = document.createElement("BUTTON");
+      userAction.textContent = action;
+      userAction.addEventListener("click", () => {
+        getNotification(action);
+      });
+      userActionsContainer.append(userAction);
+    });
+  }
+
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("theme") === "dark") {
+
+  if (localStorage.getItem("card-fcm-token")) {
+    theToken = localStorage.getItem("card-fcm-token");
+    renderUserActions();
+  } else {
+    await getTokenAndShow();
+    renderUserActions();
+  }
+  // --- THEME SETUP ---
+  if (urlParams.get("theme") === "dark")
     document.body.classList.remove("light-theme");
+  // Details FETCH
+  if (urlParams.has("username") && urlParams.get("username") !== "") {
+    userName = urlParams.get("username");
+    localStorage.setItem("username", userName);
+  }
+  if (urlParams.has("appname") && urlParams.get("appname") !== "") {
+    appName = urlParams.get("appname");
+    localStorage.setItem("appname", appName);
+  }
+  if (urlParams.has("user_id") && urlParams.get("user_id") !== "") {
+    userId = urlParams.get("user_id");
+    localStorage.setItem("user_id", userId);
+  }
+  if (urlParams.has("app_id") && urlParams.get("app_id") !== "") {
+    appId = urlParams.get("app_id");
+    localStorage.setItem("app_id", appId);
   }
 
   // --- UI ELEMENTS ---
@@ -78,6 +169,59 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // GET INTERACTION ID AND PASS TO API
+  if (urlParams.has("interaction_id")) {
+    renderCards(urlParams.get("interaction_id"));
+  }
+
+  async function renderCards(interactionId) {
+    showLoadingMessages();
+
+    console.log(appName, userName, userId, appId);
+    const apiData = await ApiService.fetchCardsApi(
+      userId,
+      appId,
+      interactionId
+    );
+    // console.log(apiData);
+    apiCardData = apiData?.data?.acd_data.data;
+    // console.log(apiCardData);
+    apiCardData.type = "new-flashcards";
+    const cardData = await ApiService.transformApiData(
+      apiCardData,
+      "newDrawingFlashcards"
+    );
+    cardData.interactionId = interactionId;
+    const cardComponent = displayCard(cardData);
+    hideLoadingMessages();
+
+    if (!cardComponent) return; // Exit if component failed to create
+
+    // --- STEP 2: Fetch the full history list in the background ---
+    if (urlParams.has("history")) {
+      const historyData = await ApiService.fetchInteractionList(userId, appId);
+
+      if (historyData?.data?.interactions) {
+        // --- STEP 3: Find the matching progress for the current session ---
+        const matchingInteraction = historyData.data.interactions.find(
+          (interaction) => interaction.id == interactionId
+        );
+
+        if (matchingInteraction && matchingInteraction.user_activity) {
+          try {
+            const activity = JSON.parse(matchingInteraction.user_activity);
+            const progressData = activity.activities[0];
+
+            // --- STEP 4: Apply the found progress to the component ---
+            cardComponent.applyProgress(progressData);
+          } catch (e) {
+            console.error("Could not apply history:", e);
+          }
+        }
+      }
+    }
+  }
+
   // 1. Load and display initial notifications
   const notifications = ApiService.getNotifications();
   notificationService.renderNotifications(notifications);
@@ -109,6 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 3. Display the selected card content
   function displayCard(data) {
+    const cardDisplayArea = document.getElementById("card-display-area");
     let cardComponent;
 
     switch (data.type) {
@@ -132,8 +277,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     cardDisplayArea.innerHTML = cardComponent.render();
     cardComponent.attachEventListeners();
-    // --- NEW: Call Lucide to render icons after new content is added ---
     lucide.createIcons();
+
+    return cardComponent;
+  }
+
+  function getNotification(action) {
+    showLoadingMessages();
+    fetch(
+      "https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/action/update",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          app_id: appId,
+          app_name: appName,
+          user_name: userName,
+          action_qry: action,
+          push_token: theToken,
+          more_details: {
+            screen: "settings",
+            clicked_at: "2025-07-26T12:34:56Z",
+          },
+        }),
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => console.log("Success:", data))
+      .catch((error) => console.error("Error:", error));
   }
 
   // 4. Mark notification as active
@@ -142,5 +316,27 @@ document.addEventListener("DOMContentLoaded", () => {
       item.classList.remove("active");
     });
     notificationElement.classList.add("active");
+  }
+});
+
+// Listen to foreground messages
+messaging.onMessage((payload) => {
+  console.log("Message received in foreground:", payload);
+
+  const { title, body } = payload.notification;
+  const options = {
+    body: body,
+    icon: payload.data.icon || "/default-icon.png",
+    data: {
+      url: payload.data.click_action,
+    },
+  };
+
+  if (Notification.permission === "granted") {
+    const n = new Notification(title, options);
+    n.onclick = (e) => {
+      e.preventDefault();
+      window.open(options.data.url, "_blank");
+    };
   }
 });
