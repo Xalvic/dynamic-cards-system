@@ -112,8 +112,10 @@ class Checklist extends CardComponent {
     return `
       <div class="card checklist" id="card-${this.data.id}">
         <div class="card-content">
-          <h2 class="card-title">${this.data.title}</h2>
-          <p class="card-subtitle">${this.data.subtitle}</p>
+         <div class="deck-info">
+            <h4 class="deck-title">${this.data.title}</h4>
+            <p class="deck-subtitle">${this.data.subtitle}</p>
+          </div>
 
           <div class="checklist-progress-header">
             <button class="reset-btn"><i data-lucide="rotate-cw"></i></button>

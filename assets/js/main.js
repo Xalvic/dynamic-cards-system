@@ -59,8 +59,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     userActions.forEach((action) => {
       let userAction = document.createElement("BUTTON");
       userAction.textContent = action;
-      userAction.addEventListener("click", () => {
-        getNotification(action);
+      userAction.addEventListener("click", async () => {
+        if (localStorage.getItem("card-fcm-token")) {
+          theToken = localStorage.getItem("card-fcm-token");
+          getNotification(action);
+        } else {
+          await getTokenAndShow();
+          getNotification(action);
+        }
       });
       userActionsContainer.append(userAction);
     });
@@ -68,13 +74,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const urlParams = new URLSearchParams(window.location.search);
 
-  if (localStorage.getItem("card-fcm-token")) {
-    theToken = localStorage.getItem("card-fcm-token");
-    renderUserActions();
-  } else {
-    await getTokenAndShow();
-    renderUserActions();
-  }
+  // if (localStorage.getItem("card-fcm-token")) {
+  //   theToken = localStorage.getItem("card-fcm-token");
+  //   renderUserActions();
+  // } else {
+  // await getTokenAndShow();
+  renderUserActions();
+  // }
   // document.querySelector(".token-text").textContent = theToken;
   // --- THEME SETUP ---
   if (urlParams.get("theme") === "dark")

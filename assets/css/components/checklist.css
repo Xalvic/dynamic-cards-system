@@ -1,3 +1,33 @@
+.deck-info {
+  text-align: center;
+  margin-bottom: 16px; /* Space between title and progress header */
+  padding: 0 16px;
+}
+
+.deck-title {
+  font-size: 1.1em; /* Adjust as needed */
+  font-weight: 600;
+  color: var(--text-secondary); /* Muted text color */
+  margin: 0;
+  line-height: 1.3;
+}
+
+.deck-subtitle {
+  font-size: 0.9em;
+  color: #9ca3af; /* A more muted gray */
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+/* Optional: Styles for dark theme */
+.dark-theme .deck-title {
+  color: #9ca3af;
+}
+
+.dark-theme .deck-subtitle {
+  color: #6b7280;
+}
+
 .card.checklist {
   padding: 20px;
   overflow-x: hidden; /* Prevent horizontal scroll from animations */
