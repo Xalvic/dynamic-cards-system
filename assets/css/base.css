@@ -371,7 +371,7 @@ body::after,
 .in-app-notification {
   /* --- Positioning & Sizing --- */
   position: fixed;
-  top: 0; /* Start off-screen */
+  top: -120px;
   left: 50%;
   opacity: 0;
   transform: translateX(-50%);

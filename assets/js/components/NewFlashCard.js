@@ -416,7 +416,9 @@ class NewFlashCard extends CardComponent {
             </div>
             <div class="header-controls">
               <div class="streak-counter-container"></div>
-              <div class="card-counter">${completedCount} / ${totalCards}</div>
+              <div class="card-counter">${
+                this.currentIndex + 1
+              } / ${totalCards}</div>
             </div>
           </div>
           <div class="new-flashcard-stack-container">
@@ -954,7 +956,10 @@ class NewFlashCard extends CardComponent {
     const completedCount = this.doneCards.size + this.notDoneCards.size;
     const totalCards = this.data.cards.length;
     const counter = cardSetElement.querySelector(".card-counter");
-    if (counter) counter.textContent = `${completedCount} / ${totalCards}`;
+    if (counter) {
+      const currentCardNumber = Math.min(this.currentIndex + 1, totalCards);
+      counter.textContent = `${currentCardNumber} / ${totalCards}`;
+    }
     const progressBarFill = cardSetElement.querySelector(
       ".progress-bar-unified-fill"
     );
@@ -988,7 +993,7 @@ class NewFlashCard extends CardComponent {
       if (lastAction.impression === "right") this.doneCards.delete(cardId);
       else this.notDoneCards.delete(cardId);
       this.currentIndex--;
-       this.correctStreak = 0;
+      this.correctStreak = 0;
       const payload = {
         userId: localStorage.getItem("user_id"),
         appId: localStorage.getItem("app_id"),
