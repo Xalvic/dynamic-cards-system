@@ -33,20 +33,23 @@
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    <!-- ✨ NEW: Styles for the user details form -->
+    <!-- ✨ UPDATED: Styles for the combined form -->
     <style>
       .user-details-form {
         width: 90%;
+        max-width: 350px;
         margin-top: 2rem;
         padding: 1.5rem;
         border: 1px solid var(--border-color);
         border-radius: 16px;
-        background-color: var(--primary-surface-color);
-        box-shadow: var(--card-shadow);
+        background-color: #f0f0f0;
+        box-shadow: inset 0 0.0625em 0 0 #f4f4f4, 0 0.0625em 0 0 #efefef,
+          0 0.125em 0 0 #ececec, 0 0.25em 0 0 #e0e0e0, 0 0.3125em 0 0 #dedede,
+          0 0.375em 0 0 #dcdcdc, 0 0.425em 0 0 #cacaca,
+          0 0.425em 0.5em 0 #cecece;
         max-width: 400px;
         margin-left: auto;
         margin-right: auto;
-        margin-bottom: 2rem;
       }
       .user-details-form h3 {
         text-align: left;
@@ -58,7 +61,9 @@
       .details-grid {
         display: flex;
         flex-direction: column;
+        /* grid-template-columns: 1fr 1fr; */
         gap: 1rem;
+        margin-bottom: 1rem;
       }
       .details-input-group {
         display: flex;
@@ -71,13 +76,18 @@
         color: var(--text-secondary);
         margin-bottom: 0.25rem;
       }
-      .details-input-group input {
+      .details-input-group input,
+      .details-input-group textarea {
         padding: 0.5rem;
         border-radius: 8px;
         border: 1px solid var(--border-color);
-        background-color: var(--bg-color);
+        background-color: #fff;
         color: var(--text-primary);
         font-family: inherit;
+        width: 100%;
+      }
+      .full-width-input {
+        grid-column: 1 / -1; /* Make this span the full width */
       }
       .save-details-btn {
         margin-top: 1rem;
@@ -115,23 +125,10 @@
         <div class="placeholder">
           <i data-lucide="mouse-pointer-click"></i>
           <h2>Welcome!</h2>
-          <p>Choose a user action.</p>
-          <div class="error-text"></div>
-          <div class="token-text"></div>
-          <div class="users-text"></div>
-          <div class="user-actions"></div>
-          <div class="custom-input">
-            <input
-              id="customAction"
-              placeholder="Enter you custom action here"
-              type="text"
-            />
-            <button id="customActionBtn">ENTER</button>
-          </div>
+          <p>Choose a user action or enter your own below.</p>
 
-          <!-- ✨ NEW: User Details Form -->
           <div class="user-details-form">
-            <h3>User Details</h3>
+            <h3>User Details & Action</h3>
             <div class="details-grid">
               <div class="details-input-group">
                 <label for="username-input">Username</label>
@@ -149,11 +146,23 @@
                 <label for="appid-input">App ID</label>
                 <input type="text" id="appid-input" />
               </div>
+              <div class="details-input-group full-width-input">
+                <label for="customAction">Custom Action</label>
+                <input
+                  type="text"
+                  id="customAction"
+                  placeholder="Enter your custom action here"
+                />
+              </div>
             </div>
             <button class="save-details-btn" id="save-details-btn">
-              Save Details
+              Save & Get Notification
             </button>
           </div>
+          <div class="error-text"></div>
+          <div class="token-text"></div>
+          <div class="users-text"></div>
+          <div class="user-actions"></div>
         </div>
       </main>
     </div>

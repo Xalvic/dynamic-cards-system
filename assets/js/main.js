@@ -9,7 +9,6 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const messaging = firebase.messaging();
 
 let theToken = "";
@@ -17,32 +16,24 @@ let userName = localStorage.getItem("username") || "John Doe";
 let appName = localStorage.getItem("appname") || "Yoga App";
 let userId = localStorage.getItem("user_id") || "user119";
 let appId = localStorage.getItem("app_id") || "app119";
-async function getTokenAndShow() {
-  const output = document.getElementById("output");
 
+async function getTokenAndShow() {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       throw new Error("Notification permission not granted");
     }
-
-    // Register service worker
     const reg = await navigator.serviceWorker.register(
-      "../../firebase-messaging-sw.js"
-    );
+      "/firebase-messaging-sw.js"
+    ); // Use absolute path
     console.log("Service Worker registered:", reg);
-
-    // Wait until SW is active
     const readyReg = await navigator.serviceWorker.ready;
     console.log("Service Worker ready:", readyReg);
-
-    // Get FCM token
     const token = await messaging.getToken({
       serviceWorkerRegistration: readyReg,
       vapidKey:
         "BHQyd_LW38dh-gEhTjGjX5UOp-rBcFr3I96DqcfKRlRuEYKWKm8_XKDbNLGD4xsInUKFDdFYYtD8Iv9uzeDL3lU",
     });
-
     theToken = token;
     localStorage.setItem("card-fcm-token", token);
     console.log("FCM token:", token);
@@ -54,45 +45,57 @@ async function getTokenAndShow() {
 let userActions = ["Completed one stack!", "Completed 100 days of yoga!"];
 
 document.addEventListener("DOMContentLoaded", async () => {
-  // --- ✨ NEW: Get elements for the user details form ---
+  // --- ✨ Get elements for the combined form ---
   const usernameInput = document.getElementById("username-input");
   const appnameInput = document.getElementById("appname-input");
   const useridInput = document.getElementById("userid-input");
   const appidInput = document.getElementById("appid-input");
+  const customActionInput = document.getElementById("customAction");
   const saveDetailsBtn = document.getElementById("save-details-btn");
 
-  // --- ✨ NEW: Function to populate the form fields ---
   function populateUserDetailsForm() {
     usernameInput.value = userName;
     appnameInput.value = appName;
     useridInput.value = userId;
     appidInput.value = appId;
+    customActionInput.value = localStorage.getItem("last_action") || "";
   }
 
-  // --- ✨ NEW: Event listener for the save button ---
-  saveDetailsBtn.addEventListener("click", () => {
-    // Read values from the form
+  // --- ✨ UPDATED: Combined event listener for the single button ---
+  saveDetailsBtn.addEventListener("click", async () => {
+    // 1. Read and save all user details
     const newUsername = usernameInput.value.trim();
     const newAppname = appnameInput.value.trim();
     const newUserid = useridInput.value.trim();
     const newAppid = appidInput.value.trim();
+    const customAction = customActionInput.value.trim();
 
-    // Update global variables
     userName = newUsername;
     appName = newAppname;
     userId = newUserid;
     appId = newAppid;
 
-    // Save to localStorage
     localStorage.setItem("username", newUsername);
     localStorage.setItem("appname", newAppname);
     localStorage.setItem("user_id", newUserid);
     localStorage.setItem("app_id", newAppid);
+    localStorage.setItem("last_action", customAction);
 
-    // Provide user feedback
+    // 2. If there is a custom action, get a notification for it
+    if (customAction) {
+      if (localStorage.getItem("card-fcm-token")) {
+        theToken = localStorage.getItem("card-fcm-token");
+        getNotification(customAction);
+      } else {
+        await getTokenAndShow();
+        getNotification(customAction);
+      }
+    }
+
+    // 3. Provide user feedback
     saveDetailsBtn.textContent = "Saved!";
     setTimeout(() => {
-      saveDetailsBtn.textContent = "Save Details";
+      saveDetailsBtn.textContent = "Save & Get Notification";
     }, 1500);
   });
 
@@ -113,24 +116,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       userActionsContainer.append(userAction);
     });
   }
-  let customActionBtn = document.getElementById("customActionBtn");
-  customActionBtn.addEventListener("click", async () => {
-    if (document.getElementById("customAction").value == "") return;
-    if (localStorage.getItem("card-fcm-token")) {
-      theToken = localStorage.getItem("card-fcm-token");
-      getNotification(document.getElementById("customAction").value);
-    } else {
-      await getTokenAndShow();
-      getNotification(document.getElementById("customAction").value);
-    }
-  });
+
   const urlParams = new URLSearchParams(window.location.search);
   renderUserActions();
 
-  // --- THEME SETUP ---
   if (urlParams.get("theme") === "dark")
     document.body.classList.remove("light-theme");
-  // Details FETCH
+
   if (urlParams.has("username") && urlParams.get("username") !== "") {
     userName = urlParams.get("username");
     localStorage.setItem("username", userName);
@@ -150,7 +142,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   populateUserDetailsForm();
 
-  // --- UI ELEMENTS ---
   const cardDisplayArea = document.getElementById("card-display-area");
   const notificationPanel = document.getElementById("notification-panel");
   const menuBtn = document.getElementById("menu-btn");
@@ -159,9 +150,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
   const overlay = document.getElementById("overlay");
   const notificationService = new NotificationService("notification-list");
-  const initialPlaceholder = cardDisplayArea.innerHTML;
 
-  // --- EVENT LISTENERS ---
   menuBtn.addEventListener("click", toggleNotificationPanel);
   closeNotificationsBtn.addEventListener("click", toggleNotificationPanel);
   overlay.addEventListener("click", toggleNotificationPanel);
@@ -187,17 +176,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     "🎯 Your personalized tasks are cooking...Hang tight!",
   ];
 
-  // --- LOADING PAGE WITH CYCLING MESSAGES ---
   let loadingOverlay = null;
   let loadingMsgIndex = 0;
   let loadingMsgInterval = null;
 
   function showLoadingMessages() {
-    if (loadingOverlay) return; // Already shown
-
+    if (loadingOverlay) return;
     loadingOverlay = document.createElement("div");
     loadingOverlay.className = "loading-overlay";
-    // New, simpler HTML for the loader
     loadingOverlay.innerHTML = `
       <div class="loader-graphic">
   <div class="box box-1">
@@ -224,10 +210,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       <div class="loading-message"></div>
     `;
     document.body.appendChild(loadingOverlay);
-
     loadingMsgIndex = 0;
     const msgEl = loadingOverlay.querySelector(".loading-message");
-
     function showNextMsg() {
       msgEl.style.opacity = 0;
       setTimeout(() => {
@@ -236,7 +220,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         loadingMsgIndex = (loadingMsgIndex + 1) % messsages.length;
       }, 400);
     }
-
     showNextMsg();
     loadingMsgInterval = setInterval(showNextMsg, 2200);
   }
@@ -250,7 +233,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // GET INTERACTION ID AND PASS TO API
   if (urlParams.has("interaction_id")) {
     ApiService.trackNotificationOpen(
       userId,
@@ -262,23 +244,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function renderCards(interactionId) {
     showLoadingMessages();
-
-    // --- STEP 1: Fetch and render the initial card deck ---
     const apiData = await ApiService.fetchCardsApi(
       userId,
       appId,
       interactionId
     );
-
-    // This part needs to be flexible based on the card type
     let cardData;
     const interactionType = apiData?.data?.int_type;
-
     if (interactionType === "checklist") {
-      // For checklists, the data is structured differently
       cardData = apiData?.data?.acd_data?.data;
     } else {
-      // For flashcards, we transform the data
       const apiCardData = apiData?.data?.acd_data?.data;
       apiCardData.type = "new-flashcards";
       cardData = await ApiService.transformApiData(
@@ -286,40 +261,32 @@ document.addEventListener("DOMContentLoaded", async () => {
         "newDrawingFlashcards"
       );
     }
-
     if (!cardData) {
       hideLoadingMessages();
       cardDisplayArea.innerHTML = `<div class="placeholder"><h2>Error</h2><p>Could not load card data.</p></div>`;
       return;
     }
-
     cardData.interactionId = interactionId;
     cardData.type = interactionType;
     const cardComponent = displayCard(cardData);
     hideLoadingMessages();
-
     if (!cardComponent) return;
-
-    // --- STEP 2: Check for history parameter and apply progress ---
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("history")) {
       const historyData = await ApiService.fetchInteractionList(userId, appId);
-
       if (historyData?.data?.interactions) {
-        console.log(historyData?.data?.interactions);
-        console.log(interactionId);
         const matchingInteraction = historyData.data.interactions.find(
           (interaction) => interaction.id == interactionId
         );
-        console.log(matchingInteraction);
-
         if (matchingInteraction && matchingInteraction.user_activity) {
           try {
-            console.log(matchingInteraction.user_activity);
-            const activity = JSON.parse(matchingInteraction.user_activity);
+            let activity;
+            if (typeof matchingInteraction.user_activity === "string") {
+              activity = JSON.parse(matchingInteraction.user_activity);
+            } else {
+              activity = matchingInteraction.user_activity;
+            }
             const progressData = activity.activities[0];
-
-            // --- ✨ NEW: Check the interaction type before applying progress ---
             if (
               matchingInteraction.int_type === "flashcards" &&
               cardComponent instanceof NewFlashCard
@@ -333,23 +300,24 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           } catch (e) {
             console.error("Could not apply history:", e);
+            console.error(
+              "Problematic user_activity data:",
+              matchingInteraction.user_activity
+            );
           }
         }
       }
     }
   }
 
-  // 1. Load and display initial notifications
   const notifications = ApiService.getNotifications();
   notificationService.renderNotifications(notifications);
-  lucide.createIcons(); // Initial call for icons in the panel
+  lucide.createIcons();
 
-  // 2. Handle notification clicks (ASYNC)
   notificationService.listElement.addEventListener("click", async (e) => {
     const li = e.target.closest("li");
     if (li) {
       const actionId = li.dataset.actionId;
-
       cardDisplayArea.innerHTML = `<div class="placeholder"><h2>Loading...</h2></div>`;
       showLoadingMessages();
       if (window.innerWidth < 768) {
@@ -359,11 +327,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // 3. Display the selected card content
   function displayCard(data) {
     const cardDisplayArea = document.getElementById("card-display-area");
     let cardComponent;
-
     switch (data.type) {
       case "flashcards":
         cardComponent = new NewFlashCard(data);
@@ -379,11 +345,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           '<div class="placeholder"><h2>Error</h2><p>Unsupported card type.</p></div>';
         return;
     }
-
     cardDisplayArea.innerHTML = cardComponent.render();
     cardComponent.attachEventListeners();
     lucide.createIcons();
-
     return cardComponent;
   }
 
@@ -407,40 +371,26 @@ document.addEventListener("DOMContentLoaded", async () => {
       `https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/action/update`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }
     )
       .then((response) => response.json())
       .then((data) => {
         console.log(data);
-        if (data.message)
-          // document.querySelector(".error-text").textContent = data.message;
-          hideLoadingMessages();
+        hideLoadingMessages();
       })
       .catch((error) => {
         console.log(error.message);
-        if (error.message)
-          document.querySelector(
-            ".error-text"
-          ).textContent = `FROM ERROR ${error.message}`;
         hideLoadingMessages();
       });
   }
-
-  // showLoadingMessages();
 });
 
-// Listen to foreground messages
 messaging.onMessage((payload) => {
   console.log("Message received in foreground:", payload);
-  // document.querySelector(".users-text").textContent = JSON.stringify(payload);
-
   const { title, body } = payload.notification;
   const clickAction = payload.data.click_action;
-
   const notificationElement = document.getElementById("in-app-notification");
   notificationElement.innerHTML = `
     <div class="in-app-notification-icon">
@@ -451,33 +401,14 @@ messaging.onMessage((payload) => {
         <p>${body}</p>
     </div>
   `;
-  // Make it clickable
   notificationElement.onclick = () => {
     window.open(clickAction, "_blank");
     notificationElement.classList.remove("show");
   };
-
-  // Show the notification
   const urlParams2 = new URLSearchParams(window.location.search);
   if (!urlParams2.has("interaction_id"))
     notificationElement.classList.add("show");
   setTimeout(() => {
     notificationElement.classList.remove("show");
   }, 5000);
-
-  const options = {
-    body: body,
-    icon: payload.data.icon || "/default-icon.png",
-    data: {
-      url: payload.data.click_action,
-    },
-  };
-
-  if (Notification.permission === "granted") {
-    const n = new Notification(title, options);
-    n.onclick = (e) => {
-      e.preventDefault();
-      window.open(options.data.url, "_blank");
-    };
-  }
 });
