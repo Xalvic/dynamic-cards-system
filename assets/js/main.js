@@ -54,6 +54,48 @@ async function getTokenAndShow() {
 let userActions = ["Completed one stack!", "Completed 100 days of yoga!"];
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // --- ✨ NEW: Get elements for the user details form ---
+  const usernameInput = document.getElementById("username-input");
+  const appnameInput = document.getElementById("appname-input");
+  const useridInput = document.getElementById("userid-input");
+  const appidInput = document.getElementById("appid-input");
+  const saveDetailsBtn = document.getElementById("save-details-btn");
+
+  // --- ✨ NEW: Function to populate the form fields ---
+  function populateUserDetailsForm() {
+    usernameInput.value = userName;
+    appnameInput.value = appName;
+    useridInput.value = userId;
+    appidInput.value = appId;
+  }
+
+  // --- ✨ NEW: Event listener for the save button ---
+  saveDetailsBtn.addEventListener("click", () => {
+    // Read values from the form
+    const newUsername = usernameInput.value.trim();
+    const newAppname = appnameInput.value.trim();
+    const newUserid = useridInput.value.trim();
+    const newAppid = appidInput.value.trim();
+
+    // Update global variables
+    userName = newUsername;
+    appName = newAppname;
+    userId = newUserid;
+    appId = newAppid;
+
+    // Save to localStorage
+    localStorage.setItem("username", newUsername);
+    localStorage.setItem("appname", newAppname);
+    localStorage.setItem("user_id", newUserid);
+    localStorage.setItem("app_id", newAppid);
+
+    // Provide user feedback
+    saveDetailsBtn.textContent = "Saved!";
+    setTimeout(() => {
+      saveDetailsBtn.textContent = "Save Details";
+    }, 1500);
+  });
+
   function renderUserActions() {
     let userActionsContainer = document.querySelector(".user-actions");
     userActions.forEach((action) => {
@@ -83,15 +125,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
   const urlParams = new URLSearchParams(window.location.search);
-
-  // if (localStorage.getItem("card-fcm-token")) {
-  //   theToken = localStorage.getItem("card-fcm-token");
-  //   renderUserActions();
-  // } else {
-  // await getTokenAndShow();
   renderUserActions();
-  // }
-  // document.querySelector(".token-text").textContent = theToken;
+
   // --- THEME SETUP ---
   if (urlParams.get("theme") === "dark")
     document.body.classList.remove("light-theme");
@@ -112,6 +147,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     appId = urlParams.get("app_id");
     localStorage.setItem("app_id", appId);
   }
+
+  populateUserDetailsForm();
 
   // --- UI ELEMENTS ---
   const cardDisplayArea = document.getElementById("card-display-area");

@@ -4,14 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dynamic Card System</title>
-
-    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json" />
-
-    <!-- Styles -->
     <link rel="stylesheet" href="assets/css/main.css" />
-
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -26,34 +20,87 @@
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&display=swap"
       rel="stylesheet"
     />
-
-    <!-- <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.js"></script> -->
     <script
       src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs"
       type="module"
     ></script>
-
-    <!-- NEW: Lucide Icons Library -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-
-    <!-- Animation & Gesture Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-
     <link
       rel="apple-touch-icon"
       href="https://placehold.co/192x192/5e72e4/ffffff?text=Cards"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- ✨ NEW: Styles for the user details form -->
+    <style>
+      .user-details-form {
+        width: 90%;
+        margin-top: 2rem;
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        background-color: var(--primary-surface-color);
+        box-shadow: var(--card-shadow);
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 2rem;
+      }
+      .user-details-form h3 {
+        text-align: left;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+      }
+      .details-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .details-input-group {
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+      }
+      .details-input-group label {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+      }
+      .details-input-group input {
+        padding: 0.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        font-family: inherit;
+      }
+      .save-details-btn {
+        margin-top: 1rem;
+        width: 100%;
+        padding: 0.75rem;
+        border: none;
+        border-radius: 8px;
+        background-color: var(--accent-primary);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+      .save-details-btn:hover {
+        background-color: var(--accent-primary-dark);
+      }
+    </style>
   </head>
   <body class="light-theme">
     <div class="app-shell">
-      <!-- Floating Menu Button -->
       <button id="menu-btn" class="floating-menu-btn">
         <i data-lucide="menu"></i>
       </button>
-
-      <!-- Slide-in Notification Panel -->
       <aside id="notification-panel" class="notification-panel">
         <div class="notification-header">
           <h2><i data-lucide="bell"></i> Notifications</h2>
@@ -61,13 +108,9 @@
             <i data-lucide="x"></i>
           </button>
         </div>
-        <ul id="notification-list">
-          <!-- Notifications will be dynamically inserted here -->
-        </ul>
+        <ul id="notification-list"></ul>
       </aside>
       <div class="overlay" id="overlay"></div>
-
-      <!-- Main App Content -->
       <main id="card-display-area" class="card-display-area">
         <div class="placeholder">
           <i data-lucide="mouse-pointer-click"></i>
@@ -85,6 +128,32 @@
             />
             <button id="customActionBtn">ENTER</button>
           </div>
+
+          <!-- ✨ NEW: User Details Form -->
+          <div class="user-details-form">
+            <h3>User Details</h3>
+            <div class="details-grid">
+              <div class="details-input-group">
+                <label for="username-input">Username</label>
+                <input type="text" id="username-input" />
+              </div>
+              <div class="details-input-group">
+                <label for="appname-input">App Name</label>
+                <input type="text" id="appname-input" />
+              </div>
+              <div class="details-input-group">
+                <label for="userid-input">User ID</label>
+                <input type="text" id="userid-input" />
+              </div>
+              <div class="details-input-group">
+                <label for="appid-input">App ID</label>
+                <input type="text" id="appid-input" />
+              </div>
+            </div>
+            <button class="save-details-btn" id="save-details-btn">
+              Save Details
+            </button>
+          </div>
         </div>
       </main>
     </div>
@@ -93,24 +162,16 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mojs/core"></script>
-    <!-- Component Scripts -->
     <script src="assets/js/components/CardComponent.js"></script>
     <script src="assets/js/components/FlashCard.js"></script>
     <script src="assets/js/components/Checklist.js"></script>
     <script src="assets/js/components/Quiz.js"></script>
     <script src="assets/js/components/NewFlashCard.js"></script>
-
-    <!-- Services -->
     <script src="assets/js/services/ApiService.js"></script>
     <script src="assets/js/services/NotificationService.js"></script>
-
-    <!-- Main App Logic -->
     <script src="assets/js/main.js"></script>
-
-    <!-- Initialize Lucide Icons -->
     <script>
       lucide.createIcons();
     </script>
