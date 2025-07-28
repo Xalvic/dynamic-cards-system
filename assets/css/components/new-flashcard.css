@@ -249,7 +249,7 @@
   touch-action: none;
 }
 .new-flashcard-slide.auto {
-    transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .new-flashcard-slide.is-loading {
   opacity: 0;
@@ -995,4 +995,10 @@ dotlottie-player {
 .results-action-btn svg {
   width: 20px;
   height: 20px;
+}
+
+.tts-btn.active {
+  color: var(--accent-primary); /* Change icon color */
+  box-shadow: 0 0 12px rgba(var(--accent-primary-rgb), 0.5); /* Add a glow */
+  transform: scale(1.1); /* Make it slightly larger */
 }

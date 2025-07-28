@@ -490,10 +490,48 @@ class NewFlashCard extends CardComponent {
     `;
   }
 
-  speakText(text) {
+  speakText(text, btnElement) {
     if ("speechSynthesis" in window && text) {
-      window.speechSynthesis.cancel();
+      const allTtsButtons = document.querySelectorAll(
+        `#card-${this.data.id} .tts-btn`
+      );
+      if (window.speechSynthesis.speaking) {
+        btnElement.classList.remove("active");
+        window.speechSynthesis.cancel();
+        return; // Exit the function after stopping
+      }
+
       const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onstart = () => {
+        btnElement.classList.add("active");
+      };
+      utterance.onend = () => {
+        allTtsButtons.forEach((btn) => btn.classList.remove("active"));
+      };
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoices = [
+        "Google US English", // Common on Android/Chrome
+        "Samantha", // Common on macOS/iOS
+        "Alex", // Common on macOS/iOS
+        "Microsoft Zira Desktop - English (United States)", // Common on Windows
+        "Microsoft David Desktop - English (United States)", // Common on Windows
+      ];
+      const selectedVoice = voices.find((voice) =>
+        preferredVoices.includes(voice.name)
+      );
+
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      } else {
+        const bestEnglishVoice = voices.find(
+          (voice) => voice.lang.startsWith("en-") && !voice.localService
+        );
+        if (bestEnglishVoice) {
+          utterance.voice = bestEnglishVoice;
+        }
+      }
+      utterance.rate = 0.9;
+      utterance.pitch = 1.1;
       window.speechSynthesis.speak(utterance);
     }
   }
@@ -665,12 +703,12 @@ class NewFlashCard extends CardComponent {
     ttsBtnFront.addEventListener("click", (e) => {
       e.stopPropagation();
       const cardData = this.data.cards[card.dataset.index];
-      this.speakText(cardData.front.title);
+      this.speakText(cardData.front.title, e.currentTarget);
     });
     ttsBtnBack.addEventListener("click", (e) => {
       e.stopPropagation();
       const cardData = this.data.cards[card.dataset.index];
-      this.speakText(cardData.back.description);
+      this.speakText(cardData.back.description, e.currentTarget);
     });
 
     const hammertime = new Hammer(card);

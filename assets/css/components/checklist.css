@@ -200,8 +200,8 @@
 }
 .time-chip-v2 {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 8px;
+  right: 8px;
   background-color: rgba(0, 0, 0, 0.05);
   color: var(--text-secondary);
   padding: 3px 8px;

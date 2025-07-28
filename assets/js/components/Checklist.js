@@ -211,10 +211,11 @@ class Checklist extends CardComponent {
 
   renderListItem(item, index) {
     const isCompleted = this.completedItems.has(item.task);
-    const timeStr = item.time || "";
+    const timeStr = (item.time || "").split(" ").slice(0, 2).join(" ");
     const showScheduleBtn =
       timeStr &&
       !timeStr.toLowerCase().includes("minute") &&
+      !timeStr.toLowerCase().includes("today") &&
       !timeStr.toLowerCase().includes("hour");
     const backgroundStyle = `style="background-image: ${this.taskGradients[index]}"`;
 
