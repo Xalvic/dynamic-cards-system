@@ -14,8 +14,8 @@ const messaging = firebase.messaging();
 let theToken = "";
 let userName = localStorage.getItem("username") || "Dave";
 let appName = localStorage.getItem("appname") || "Learn Yoga App";
-let userId = localStorage.getItem("user_id") || "user119";
-let appId = localStorage.getItem("app_id") || "app119";
+let userId = localStorage.getItem("user_id") || "Dave";
+let appId = localStorage.getItem("app_id") || "yoga.workouts.app";
 let theUserAction = localStorage.getItem("last_action") || "Successfully completed a new chapter in Yoga practice.🧘‍♂";
 
 async function getTokenAndShow() {
