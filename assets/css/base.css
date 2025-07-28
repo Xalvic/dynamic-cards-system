@@ -444,3 +444,7 @@ body::after,
 .token-text {
   word-break: break-all;
 }
+
+.placeholder .header {
+  margin-top: 1rem;
+}

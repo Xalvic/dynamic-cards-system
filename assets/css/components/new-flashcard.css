@@ -534,6 +534,9 @@
   max-width: 400px;
   margin: 0 auto;
 }
+.result-wrapper.shared {
+  background-color: var(--secondary-surface-color);
+}
 
 .results-header {
   position: relative;

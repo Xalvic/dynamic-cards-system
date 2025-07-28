@@ -12,10 +12,11 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 let theToken = "";
-let userName = localStorage.getItem("username") || "John Doe";
-let appName = localStorage.getItem("appname") || "Yoga App";
+let userName = localStorage.getItem("username") || "Dave";
+let appName = localStorage.getItem("appname") || "Learn Yoga App";
 let userId = localStorage.getItem("user_id") || "user119";
 let appId = localStorage.getItem("app_id") || "app119";
+let theUserAction = localStorage.getItem("last_action") || "Successfully completed a new chapter in Yoga practice.🧘‍♂";
 
 async function getTokenAndShow() {
   try {
@@ -43,19 +44,21 @@ async function getTokenAndShow() {
 }
 
 let userActions = ["Completed one stack!", "Completed 100 days of yoga!"];
-let selectLang ="en"
+let selectLang = "en";
 document.addEventListener("DOMContentLoaded", async () => {
   const languageSelect = document.getElementById("language-select");
   const savedLanguage = localStorage.getItem("language");
-  selectLang = savedLanguage
+  selectLang = savedLanguage;
   if (savedLanguage) {
     languageSelect.value = savedLanguage;
+    selectLang = savedLanguage;
   } else {
+    selectLang = "en";
     localStorage.setItem("language", "en");
   }
   languageSelect.addEventListener("change", (e) => {
     const newLanguage = e.target.value;
-    selectLang = newLanguage
+    selectLang = newLanguage;
     localStorage.setItem("language", newLanguage);
     console.log(`Language selection saved: ${newLanguage}`);
   });
@@ -72,7 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     appnameInput.value = appName;
     useridInput.value = userId;
     appidInput.value = appId;
-    customActionInput.value = localStorage.getItem("last_action") || "";
+    customActionInput.value = theUserAction;
   }
 
   // --- ✨ UPDATED: Combined event listener for the single button ---
@@ -402,7 +405,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 messaging.onMessage((payload) => {
-  alert("Message received in foreground:");
   console.log("Message received in foreground:", payload);
   const { title, body } = payload.notification;
   const clickAction = payload.data.click_action;

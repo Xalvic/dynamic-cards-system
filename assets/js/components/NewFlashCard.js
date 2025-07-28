@@ -16,17 +16,32 @@ class NewFlashCard extends CardComponent {
     if (!resultsPage) return;
 
     // Temporarily hide the share button itself from the screenshot
+    const resultWrapper = resultsPage.querySelector(".result-wrapper");
     const shareButton = resultsPage.querySelector(".share-btn");
+    const recallLast = resultsPage.querySelector(".recall-last-btn");
+    const resultsFooter = resultsPage.querySelector(".results-footer");
     if (shareButton) shareButton.style.opacity = "0";
+    if (recallLast) recallLast.style.display = "none";
+    if (resultsFooter) resultsFooter.style.display = "none";
+    if (resultWrapper) {
+      resultWrapper.classList.add("shared");
+      resultWrapper.style.height = "auto";
+    }
 
     try {
-      const canvas = await html2canvas(resultsPage, {
+      const canvas = await html2canvas(resultWrapper, {
         useCORS: true, // Important for external images/fonts
         backgroundColor: "#f8fafc", // Set a background for transparency
       });
 
       // Restore the share button's visibility
       if (shareButton) shareButton.style.opacity = "1";
+      if (recallLast) recallLast.style.display = "inline-flex";
+      if (resultsFooter) resultsFooter.style.display = "flex";
+      if (resultWrapper) {
+        resultWrapper.classList.remove("shared");
+        resultWrapper.style.height = "100%";
+      }
 
       // Convert canvas to a Blob
       canvas.toBlob(async (blob) => {
@@ -58,7 +73,13 @@ class NewFlashCard extends CardComponent {
       }, "image/png");
     } catch (error) {
       console.error("Error capturing or sharing the image:", error);
-      if (shareButton) shareButton.style.opacity = "1"; // Ensure button is visible on error
+      if (shareButton) shareButton.style.opacity = "1";
+      if (recallLast) recallLast.style.display = "inline-flex";
+      if (resultsFooter) resultsFooter.style.display = "flex";
+      if (resultWrapper) {
+        resultWrapper.classList.remove("shared");
+        resultWrapper.style.height = "100%";
+      }
     }
   }
 

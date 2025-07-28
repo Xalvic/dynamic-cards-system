@@ -43,10 +43,10 @@
         border: 1px solid var(--border-color);
         border-radius: 16px;
         background-color: #f0f0f0;
-        box-shadow: inset 0 0.0625em 0 0 #f4f4f4, 0 0.0625em 0 0 #efefef,
-          0 0.125em 0 0 #ececec, 0 0.25em 0 0 #e0e0e0, 0 0.3125em 0 0 #dedede,
-          0 0.375em 0 0 #dcdcdc, 0 0.425em 0 0 #cacaca,
-          0 0.425em 0.5em 0 #cecece;
+        box-shadow: inset 0 0.0625em 0 0 #ebeeee, 0 0.0625em 0 0 #e0e4e3,
+          0 0.125em 0 0 #dce0e0, 0 0.25em 0 0 #cccfcf, 0 0.3125em 0 0 #d5d6d6,
+          0 0.375em 0 0 #dcdcdc, 0 0.425em 0 0 #cccfcf,
+          0 0.425em 0.5em 0 #d6dcdd;
         max-width: 400px;
         margin-left: auto;
         margin-right: auto;
@@ -124,9 +124,11 @@
       <div class="overlay" id="overlay"></div>
       <main id="card-display-area" class="card-display-area">
         <div class="placeholder">
-          <i data-lucide="mouse-pointer-click"></i>
-          <h2>Welcome!</h2>
-          <p>Choose a user action or enter your own below.</p>
+          <div class="header">
+            <i data-lucide="mouse-pointer-click"></i>
+            <h2>Welcome!</h2>
+            <p>Choose a user action or enter your own below.</p>
+          </div>
 
           <div class="user-details-form">
             <h3>User Details & Action</h3>
