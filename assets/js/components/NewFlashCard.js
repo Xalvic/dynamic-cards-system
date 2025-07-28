@@ -11,6 +11,57 @@ class NewFlashCard extends CardComponent {
     this.completionSound = new Audio("../../../assets/sounds/complete.mp3");
   }
 
+  async handleShare() {
+    const resultsPage = document.querySelector(".results-page");
+    if (!resultsPage) return;
+
+    // Temporarily hide the share button itself from the screenshot
+    const shareButton = resultsPage.querySelector(".share-btn");
+    if (shareButton) shareButton.style.opacity = "0";
+
+    try {
+      const canvas = await html2canvas(resultsPage, {
+        useCORS: true, // Important for external images/fonts
+        backgroundColor: "#f8fafc", // Set a background for transparency
+      });
+
+      // Restore the share button's visibility
+      if (shareButton) shareButton.style.opacity = "1";
+
+      // Convert canvas to a Blob
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          console.error("Canvas to Blob conversion failed.");
+          return;
+        }
+
+        const file = new File([blob], "flashcard-results.png", {
+          type: "image/png",
+        });
+        const shareData = {
+          files: [file],
+          title: "My Flashcard Results!",
+          text: "Check out my progress on my learning journey.",
+        };
+
+        // Use the Web Share API if available
+        if (navigator.canShare && navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+        } else {
+          // Fallback for browsers that don't support Web Share API (like desktop)
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "flashcard-results.png";
+          link.click();
+          URL.revokeObjectURL(link.href);
+        }
+      }, "image/png");
+    } catch (error) {
+      console.error("Error capturing or sharing the image:", error);
+      if (shareButton) shareButton.style.opacity = "1"; // Ensure button is visible on error
+    }
+  }
+
   initializeState(progressData) {
     this.resetState();
 
@@ -129,6 +180,7 @@ class NewFlashCard extends CardComponent {
         <div class="results-page" data-accuracy="${accuracy}">
         <div class="result-wrapper">
           <div class="results-header">
+            <button class="results-action-btn share-btn" id="share-btn"><i data-lucide="share-2"></i></button>
             <h3>${title}</h3>
             <p>${subtitle}</p>
             <img src="https://storage.googleapis.com/production-assets/assets/flashcard-results.png" alt="Celebration" class="results-illustration"/>
@@ -275,6 +327,11 @@ class NewFlashCard extends CardComponent {
     const restartBtn = document.getElementById("restart-btn");
     const recallBtn = document.querySelector(".recall-last-btn");
     const resultsPage = document.querySelector(".results-page");
+    const shareBtn = document.getElementById("share-btn");
+
+    if (shareBtn) {
+      shareBtn.addEventListener("click", () => this.handleShare());
+    }
 
     if (reviewBtn) {
       reviewBtn.addEventListener("click", () => this.reviewIncorrectCards());
@@ -464,10 +521,7 @@ class NewFlashCard extends CardComponent {
     anime.set(cards, {
       opacity: 0,
       translateY: 60,
-      rotate: (el, i) =>
-        i === this.currentIndex
-          ? baseAngle * (i + 1) - 120
-          : baseAngle * (i + 1),
+      rotate: (el, i) => baseAngle * (i + 1),
     });
     anime({
       targets: cards,
@@ -934,6 +988,7 @@ class NewFlashCard extends CardComponent {
       if (lastAction.impression === "right") this.doneCards.delete(cardId);
       else this.notDoneCards.delete(cardId);
       this.currentIndex--;
+       this.correctStreak = 0;
       const payload = {
         userId: localStorage.getItem("user_id"),
         appId: localStorage.getItem("app_id"),
@@ -982,6 +1037,10 @@ class NewFlashCard extends CardComponent {
       clearTimeout(this.autoPlayInterval);
       this.autoPlayInterval = null;
     }
+    let cards = document.querySelectorAll(".new-flashcard-slide");
+    cards.forEach((element) => {
+      element.classList.remove("auto");
+    });
     this.updateAutoPlayButton();
   }
   updateAutoPlayButton() {
@@ -1002,6 +1061,7 @@ class NewFlashCard extends CardComponent {
     const currentCard = document.querySelector(
       `.new-flashcard-slide[data-index="${this.currentIndex}"]`
     );
+    currentCard.classList.add("auto");
     if (!currentCard) {
       this.stopAutoPlay();
       return;
@@ -1012,7 +1072,7 @@ class NewFlashCard extends CardComponent {
       flipper.classList.add("flipped");
       this.autoPlayInterval = setTimeout(() => {
         this.autoPlaySwipeLeft(currentCard);
-      }, 2000);
+      }, 1700);
     } else {
       this.autoPlaySwipeLeft(currentCard);
     }
@@ -1024,7 +1084,7 @@ class NewFlashCard extends CardComponent {
     this.nextCard(false);
     setTimeout(() => {
       this.autoPlayNextCard();
-    }, 400);
+    }, 1200);
   }
 
   applyProgress(progressData) {

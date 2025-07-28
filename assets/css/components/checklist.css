@@ -438,3 +438,19 @@
 .save-task-btn:hover {
   background-color: var(--accent-primary-dark);
 }
+.task-particle-container {
+  position: absolute;
+  top: 50%;
+  left: 38px; /* Position it near the checkbox */
+  width: 1px;
+  height: 1px;
+  z-index: 10;
+  pointer-events: none;
+}
+.task-particle {
+  position: absolute;
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

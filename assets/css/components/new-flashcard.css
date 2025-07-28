@@ -248,6 +248,9 @@
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   touch-action: none;
 }
+.new-flashcard-slide.auto {
+    transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
 .new-flashcard-slide.is-loading {
   opacity: 0;
 }
@@ -967,4 +970,29 @@ dotlottie-player {
   100% {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
+}
+
+.results-action-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  background-color: var(--secondary-surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.results-action-btn:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+.results-action-btn svg {
+  width: 20px;
+  height: 20px;
 }

@@ -8,17 +8,18 @@ class Checklist extends CardComponent {
         .map((item) => [item.task, Date.now()])
     );
     this.completionSound = new Audio("../../../assets/sounds/sucess.mp3");
+    this.taskSound = new Audio("../../../assets/sounds/task.mp3");
     this.taskGradients = this.generateGradients(data.tasks);
   }
 
   generateGradients(tasks) {
     const gradientColors = [
-      ["#E0F7FA", "#B2EBF2"],
-      ["#E8F5E9", "#C8E6C9"],
-      ["#F3E5F5", "#E1BEE7"],
-      ["#FFFDE7", "#FFF59D"],
-      ["#FBE9E7", "#FFCCBC"],
-      ["#E3F2FD", "#BBDEFB"],
+      ["#B2EBF2", "#4DD0E1"], // soft aqua
+      ["#C8E6C9", "#81C784"], // fresh minty green
+      ["#E1BEE7", "#BA68C8"], // soft purple with more depth
+      ["#FFF59D", "#FFD54F"], // pastel yellow with warmth
+      ["#FFCCBC", "#FFAB91"], // gentle peach-orange
+      ["#BBDEFB", "#64B5F6"], // light blue with clarity
     ];
     return tasks.map(() => {
       const colors =
@@ -27,42 +28,46 @@ class Checklist extends CardComponent {
     });
   }
 
-  async handleAddNewTask() {
-    const titleInput = document.getElementById("new-task-title");
-    const actionInput = document.getElementById("new-task-action");
-    const title = titleInput.value.trim();
-    const action = actionInput.value.trim();
+  async handleGetNewTask() {
+    const queryInput = document.getElementById("new-task-query");
+    const more_qry = queryInput.value.trim();
 
-    if (!title) {
-      // A simple non-blocking notification is better than alert()
-      console.error("Task title cannot be empty.");
+    if (!more_qry) {
+      console.error("Please enter a prompt for the new task.");
       return;
     }
 
-    const newTask = {
-      task: title,
-      action_to_take: action,
-      id: `local_task_${Date.now()}`,
-      time: "",
-      why_this_task: "This is a newly added task.",
-      completed: false,
-    };
+    const current_data = this.data.tasks
+      .map((task) => task.action_to_take)
+      .join(". ");
 
-    // 1. Add to local data array
-    this.data.tasks.push(newTask);
-    this.taskGradients = this.generateGradients(this.data.tasks);
+    if (!current_data) {
+      console.error("Please describe the task or context.");
+      // A visual error indication could be added here later
+      return;
+    }
 
-    // 2. Call the placeholder API function
-    await ApiService.addNewChecklistTask({
-      userId: localStorage.getItem("user_id"),
-      appId: localStorage.getItem("app_id"),
+    const saveBtn = document.getElementById("save-task-btn");
+    saveBtn.textContent = "Generating...";
+    saveBtn.disabled = true;
+
+    const newTaskData = await ApiService.getNewChecklistTask({
       interactionId: this.interactionId,
-      taskData: { task: newTask.task, action_to_take: newTask.action_to_take },
+      current_data: current_data,
+      more_qry: more_qry,
     });
 
-    // 3. Close the sheet and re-render the UI
-    this.toggleBottomSheet(false);
-    this.updateUI();
+    if (newTaskData) {
+      this.data.tasks.push(newTaskData);
+      this.taskGradients = this.generateGradients(this.data.tasks);
+      this.toggleBottomSheet(false);
+      this.updateUI();
+    } else {
+      console.error("Failed to get a new task from the API.");
+    }
+
+    saveBtn.textContent = "Suggest Task";
+    saveBtn.disabled = false;
   }
 
   // --- ✨ NEW METHOD: Toggles the bottom sheet visibility ---
@@ -71,10 +76,8 @@ class Checklist extends CardComponent {
     if (overlay) {
       if (show) {
         overlay.classList.add("show");
-        // Clear inputs when showing
-        document.getElementById("new-task-title").value = "";
-        document.getElementById("new-task-action").value = "";
-        document.getElementById("new-task-title").focus();
+        document.getElementById("new-task-query").value = "";
+        document.getElementById("new-task-query").focus();
       } else {
         overlay.classList.remove("show");
       }
@@ -184,25 +187,21 @@ class Checklist extends CardComponent {
           </ul>
           <button class="add-task-btn" id="add-task-btn">
             <i data-lucide="plus"></i>
-            <span>Add Task</span>
+            <span>Make yours ✨</span>
           </button>
         </div>
         <div class="bottom-sheet-overlay" id="bottom-sheet-overlay">
             <div class="bottom-sheet">
                 <div class="bottom-sheet-header">
-                    <h3>Add a New Task</h3>
+                    <h3>Want to create a custom task?</h3>
                     <button class="close-sheet-btn" id="close-sheet-btn"><i data-lucide="x"></i></button>
                 </div>
                 <div class="bottom-sheet-content">
                     <div class="form-group">
-                        <label for="new-task-title">Task Title</label>
-                        <input type="text" id="new-task-title" placeholder="e.g., Morning Yoga">
+                        <label for="new-task-query">What do you have in mind?</label>
+                        <input type="text" id="new-task-query" placeholder="Write what's on your mind, set a goal, plan something fun...">
                     </div>
-                    <div class="form-group">
-                        <label for="new-task-action">Description</label>
-                        <textarea id="new-task-action" rows="3" placeholder="e.g., Complete a 15-minute sun salutation session."></textarea>
-                    </div>
-                    <button class="save-task-btn" id="save-task-btn">Save Task</button>
+                    <button class="save-task-btn" id="save-task-btn">Surprise me✨</button>
                 </div>
             </div>
         </div>
@@ -287,7 +286,7 @@ class Checklist extends CardComponent {
         if (e.target === overlay) this.toggleBottomSheet(false);
       });
     if (saveTaskBtn)
-      saveTaskBtn.addEventListener("click", () => this.handleAddNewTask());
+      saveTaskBtn.addEventListener("click", () => this.handleGetNewTask());
 
     // --- The rest of your event listeners ---
     const taskList = componentRoot.querySelector(".task-list-v2");
@@ -325,6 +324,55 @@ class Checklist extends CardComponent {
       this.resetState();
     });
   }
+  triggerTaskCompletionParticles(taskElement) {
+    if (!window.anime) return;
+
+    const container = document.createElement("div");
+    container.className = "task-particle-container";
+    taskElement.appendChild(container);
+
+    const colors = ["#A8D0E6", "#F7D4A2", "#84DCC6", "#FFAAA5", "#A3A8E6"];
+
+    // ✨ INCREASED particle count from 20 to 30
+    for (let i = 0; i < 30; i++) {
+      const particle = document.createElement("div");
+      particle.className = "task-particle";
+      particle.style.backgroundColor =
+        colors[anime.random(0, colors.length - 1)];
+      container.appendChild(particle);
+
+      anime({
+        targets: particle,
+        // ✨ INCREASED travel distance for a bigger burst
+        translateX: anime.random(-90, 90),
+        translateY: anime.random(-90, 90),
+        // ✨ MODIFIED scale to pop in and then fade out
+        scale: [
+          { value: anime.random(1, 1.5), duration: 400, easing: "easeOutQuad" },
+          { value: 0, duration: 600, easing: "easeInQuad" },
+        ],
+        opacity: [
+          { value: 1, duration: 400 },
+          { value: 0, duration: 600 },
+        ],
+        // ✨ INCREASED duration for a slightly longer effect
+        duration: anime.random(1000, 1400),
+        easing: "easeOutExpo",
+        complete: () => {
+          if (container.contains(particle)) {
+            container.removeChild(particle);
+          }
+        },
+      });
+    }
+
+    // Clean up the container after the animation is done
+    setTimeout(() => {
+      if (taskElement.contains(container)) {
+        taskElement.removeChild(container);
+      }
+    }, 1600);
+  }
 
   markItemComplete(itemId) {
     if (this.completedItems.has(itemId)) return;
@@ -334,11 +382,16 @@ class Checklist extends CardComponent {
       `.task-item-container-v2[data-item-id="${itemId}"]`
     );
     if (itemElement) {
+      this.triggerTaskCompletionParticles(itemElement);
       itemElement.classList.add("completed");
     }
 
     this.updateProgressUI();
     this.syncProgressWithApi();
+    if (this.completedItems.size !== this.data.tasks.length) {
+      this.taskSound.currentTime = 0;
+      this.taskSound.play();
+    }
 
     if (this.completedItems.size === this.data.tasks.length) {
       document

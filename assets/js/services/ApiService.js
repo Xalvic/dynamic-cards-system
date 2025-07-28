@@ -1,3 +1,6 @@
+const apiUrlParams = new URLSearchParams(window.location.search);
+let lang = "";
+if (apiUrlParams.has("lang")) lang = apiUrlParams.get("lang");
 const ApiService = {
   async fetchCardData(actionId) {
     // Updated to handle both old and new flashcard types
@@ -261,7 +264,9 @@ const ApiService = {
   async fetchCardsApi(userId, appId, interactionId) {
     try {
       const response = await fetch(
-        `https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/interaction/get?user_id=${userId}&app_id=${appId}&user_interaction_id=${interactionId}`
+        `https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/interaction/get?user_id=${userId}&app_id=${appId}&user_interaction_id=${interactionId}${
+          lang != "" ? `&language=${lang}` : "&language=en"
+        }`
       );
 
       if (!response.ok) {
@@ -366,22 +371,43 @@ const ApiService = {
    * @param {object} payload.taskData - The new task object.
    * @returns {Promise<object|null>}
    */
-  async addNewChecklistTask(payload) {
-    console.log("ApiService: Pretending to save a new task to the backend.");
-    console.log("Payload:", payload);
+  async getNewChecklistTask(payload) {
+    const apiUrl =
+      "https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/interaction/newchecklist";
 
-    // This is where you would make a real POST request to your API
-    // const apiUrl = `.../api/interaction/add-task`;
-    // try {
-    //   const response = await fetch(apiUrl, { ... });
-    //   ...
-    // } catch (error) { ... }
+    const requestBody = {
+      user_interaction_id: payload.interactionId,
+      app_name: localStorage.getItem("appname") || "LearnApp",
+      user_action:
+        localStorage.getItem("user_action") ||
+        "Generated a new task suggestion", // A default action
+      current_data: payload.current_data,
+      more_qry: payload.more_qry,
+    };
+    if (lang != "") requestBody.language = lang;
 
-    // Return a mock success response for now
-    return Promise.resolve({
-      status: "success",
-      message: "Task added locally.",
-    });
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch new task: " + response.statusText);
+      }
+
+      const result = await response.json();
+      if (result.status === "success" && result.data.new_data) {
+        console.log("✅ New task received:", result.data.new_data);
+        return result.data.new_data; // Return just the new task object
+      } else {
+        throw new Error("API response was not successful or missing new_data.");
+      }
+    } catch (error) {
+      console.error("❌ Error fetching new checklist task:", error);
+      return null;
+    }
   },
   /**
    * NEW: Tracks user activity for a checklist session.

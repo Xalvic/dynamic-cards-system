@@ -135,13 +135,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const messsages = [
-    "Loading… because knowledge takes a second to get awesome",
-    "Bringing your learning streak back online!",
-    "Just a moment… making your goals easy to track",
-    "Compiling your achievements in progress… Stay tuned!",
-    "Great things come to those who review—your cards are almost ready.",
-    "Prime your mind… Success is a few seconds away!",
-    "Tracking your progress, building your mastery.",
+    "Loading your awesome content... 🚀 Knowledge incoming!",
+    "⚡ Did you know? Octopuses have three hearts! Your flashcards are loading...",
+    "Fun fact: Bananas are berries, but strawberries aren't 🍓 Almost ready!",
+    "Compiling your achievements 📊 Stay tuned for greatness!",
+    "🧠 Building epic action tasks... Get ready to crush it!",
+    "Random fact: A group of flamingos is called a 'flamboyance' ✨ Loading...",
+    "Prime your mind 🔥 Success is just seconds away!",
+    "Did you know honey never spoils? 🍯 Your study cards are almost done!",
+    "⚡ Making learning magical... Please wait!",
+    "Fun trivia: Penguins propose with pebbles 🐧 Your content is loading!",
+    "Crafting your perfect learning experience 🎨 Almost there!",
+    "Random fact: A day on Venus is longer than its year! 🪐 Loading awesome stuff...",
+    "🎯 Your personalized tasks are cooking...Hang tight!",
   ];
 
   // --- LOADING PAGE WITH CYCLING MESSAGES ---
@@ -151,20 +157,40 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function showLoadingMessages() {
     if (loadingOverlay) return; // Already shown
+
     loadingOverlay = document.createElement("div");
     loadingOverlay.className = "loading-overlay";
+    // New, simpler HTML for the loader
     loadingOverlay.innerHTML = `
-      <div class="cloud cloud-1"></div>
-      <div class="cloud cloud-2"></div>
-      <div class="cloud cloud-3"></div>
-      <div class="cloud cloud-4"></div>
-      <div class="loading-message-container">
-        <div class="loading-message"></div>
-      </div>
+      <div class="loader-graphic">
+  <div class="box box-1">
+    <div class="side-left"></div>
+    <div class="side-right"></div>
+    <div class="side-top"></div>
+  </div>
+  <div class="box box-2">
+    <div class="side-left"></div>
+    <div class="side-right"></div>
+    <div class="side-top"></div>
+  </div>
+  <div class="box box-3">
+    <div class="side-left"></div>
+    <div class="side-right"></div>
+    <div class="side-top"></div>
+  </div>
+  <div class="box box-4">
+    <div class="side-left"></div>
+    <div class="side-right"></div>
+    <div class="side-top"></div>
+  </div>
+</div>
+      <div class="loading-message"></div>
     `;
     document.body.appendChild(loadingOverlay);
+
     loadingMsgIndex = 0;
     const msgEl = loadingOverlay.querySelector(".loading-message");
+
     function showNextMsg() {
       msgEl.style.opacity = 0;
       setTimeout(() => {
@@ -173,6 +199,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         loadingMsgIndex = (loadingMsgIndex + 1) % messsages.length;
       }, 400);
     }
+
     showNextMsg();
     loadingMsgInterval = setInterval(showNextMsg, 2200);
   }
@@ -324,26 +351,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function getNotification(action) {
+    localStorage.setItem("user_action", action);
     showLoadingMessages();
+    let payload = {
+      user_id: userId,
+      app_id: appId,
+      app_name: appName,
+      user_name: userName,
+      action_qry: action,
+      push_token: theToken,
+      more_details: {
+        screen: "settings",
+        clicked_at: "2025-07-26T12:34:56Z",
+      },
+    };
+    if (lang != "") payload.language = lang;
     fetch(
-      "https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/action/update",
+      `https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/action/update`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          user_id: userId,
-          app_id: appId,
-          app_name: appName,
-          user_name: userName,
-          action_qry: action,
-          push_token: theToken,
-          more_details: {
-            screen: "settings",
-            clicked_at: "2025-07-26T12:34:56Z",
-          },
-        }),
+        body: JSON.stringify(payload),
       }
     )
       .then((response) => response.json())
@@ -362,6 +392,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         hideLoadingMessages();
       });
   }
+
+  // showLoadingMessages();
 });
 
 // Listen to foreground messages
@@ -374,8 +406,13 @@ messaging.onMessage((payload) => {
 
   const notificationElement = document.getElementById("in-app-notification");
   notificationElement.innerHTML = `
-    <h4>${title}</h4>
-    <p>${body}</p>
+    <div class="in-app-notification-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+    </div>
+    <div class="in-app-notification-content">
+        <h4>${title}</h4>
+        <p>${body}</p>
+    </div>
   `;
   // Make it clickable
   notificationElement.onclick = () => {
