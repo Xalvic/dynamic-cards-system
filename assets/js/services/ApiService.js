@@ -1,3 +1,5 @@
+const API_URL =
+  "https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api";
 const apiUrlParams = new URLSearchParams(window.location.search);
 let lang = "";
 if (apiUrlParams.has("lang")) lang = apiUrlParams.get("lang");

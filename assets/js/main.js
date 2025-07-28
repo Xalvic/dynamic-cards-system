@@ -388,6 +388,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 messaging.onMessage((payload) => {
+  alert("Message received in foreground:");
   console.log("Message received in foreground:", payload);
   const { title, body } = payload.notification;
   const clickAction = payload.data.click_action;
