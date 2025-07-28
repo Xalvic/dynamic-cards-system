@@ -137,7 +137,8 @@
         line-height: 1.4;
       }
 
-      .notification-btn {
+      .notification-btn,
+      .back-button {
         width: 36px;
         height: 36px;
         border-radius: 10px;
@@ -611,6 +612,9 @@
       <div class="app-header">
         <div class="header-content">
           <!-- ✨ NEW: Page Heading -->
+          <button class="back-button">
+            <i class="fa fa-arrow-left" aria-hidden="true"></i>
+          </button>
           <div class="page-heading">
             <h1 class="page-title">History</h1>
             <p class="notification-status" id="notificationStatus">
@@ -673,6 +677,9 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", () => {
+        document.querySelector(".back-button").addEventListener("click", () => {
+          window.history.back();
+        });
         const cardsGrid = document.getElementById("cardsGrid");
         const notificationBtn = document.getElementById("notificationBtn");
         const notificationBadge = document.getElementById("notificationBadge");
