@@ -367,6 +367,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       },
     };
     if (lang != "") payload.language = lang;
+    else payload.language = "en";
     fetch(
       `https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/action/update`,
       {
