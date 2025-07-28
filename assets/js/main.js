@@ -43,8 +43,22 @@ async function getTokenAndShow() {
 }
 
 let userActions = ["Completed one stack!", "Completed 100 days of yoga!"];
-
+let selectLang ="en"
 document.addEventListener("DOMContentLoaded", async () => {
+  const languageSelect = document.getElementById("language-select");
+  const savedLanguage = localStorage.getItem("language");
+  selectLang = savedLanguage
+  if (savedLanguage) {
+    languageSelect.value = savedLanguage;
+  } else {
+    localStorage.setItem("language", "en");
+  }
+  languageSelect.addEventListener("change", (e) => {
+    const newLanguage = e.target.value;
+    selectLang = newLanguage
+    localStorage.setItem("language", newLanguage);
+    console.log(`Language selection saved: ${newLanguage}`);
+  });
   // --- ✨ Get elements for the combined form ---
   const usernameInput = document.getElementById("username-input");
   const appnameInput = document.getElementById("appname-input");
@@ -366,8 +380,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         clicked_at: "2025-07-26T12:34:56Z",
       },
     };
-    if (lang != "") payload.language = lang;
-    else payload.language = "en";
+    payload.language = selectLang;
     fetch(
       `https://card-system-api-199903473791.asia-south1.run.app/firestorm-two/api/action/update`,
       {
