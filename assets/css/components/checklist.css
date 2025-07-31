@@ -261,13 +261,14 @@
 }
 .back-content-v2 h4 {
   margin: 0 0 8px 0;
-  color: var(--text-primary);
+  color: var(--card-text-color, var(--text-primary));
   font-size: 1rem;
   font-weight: 600;
 }
 .back-content-v2 p {
   margin: 0 0 16px 0;
-  color: var(--text-secondary);
+  color: var(--card-text-color, var(--text-primary));
+  opacity: 0.8;
   line-height: 1.5;
   font-size: 0.85rem;
 }
