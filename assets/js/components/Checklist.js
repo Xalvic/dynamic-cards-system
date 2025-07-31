@@ -13,18 +13,42 @@ class Checklist extends CardComponent {
   }
 
   generateGradients(tasks) {
-    const gradientColors = [
-      ["#B2EBF2", "#4DD0E1"], // soft aqua
-      ["#C8E6C9", "#81C784"], // fresh minty green
-      ["#E1BEE7", "#BA68C8"], // soft purple with more depth
-      ["#FFF59D", "#FFD54F"], // pastel yellow with warmth
-      ["#FFCCBC", "#FFAB91"], // gentle peach-orange
-      ["#BBDEFB", "#64B5F6"], // light blue with clarity
+    const colorThemes = [
+      {
+        backgroundColor: "linear-gradient(to bottom right, #A78BFA, #E9D8FD)",
+        textColor: "#4A148C",
+      },
+      {
+        backgroundColor: "linear-gradient(to bottom right, #86EFAC, #BBF7D0)",
+        textColor: "#166534",
+      },
+      {
+        backgroundColor: "linear-gradient(to bottom right, #FDE68A, #FEF3C7)",
+        textColor: "#713F12",
+      },
+      {
+        backgroundColor: "linear-gradient(to bottom right, #67E8F9, #CCFBF1)",
+        textColor: "#0E7490",
+      },
+      {
+        backgroundColor: "linear-gradient(to bottom right, #F472B6, #FBCFE8)",
+        textColor: "#831843",
+      },
+      {
+        backgroundColor: "linear-gradient(to bottom right, #A5B4FC, #E0E7FF)",
+        textColor: "#3730A3",
+      },
+      {
+        backgroundColor: "linear-gradient(to bottom right, #F9A8D4, #FCE7F3)",
+        textColor: "#BE185D",
+      },
     ];
-    return tasks.map(() => {
-      const colors =
-        gradientColors[Math.floor(Math.random() * gradientColors.length)];
-      return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
+    // return tasks.map((_, index) => {
+    //   const colors = gradientColors[index % gradientColors.length];
+    //   return `linear-gradient(to bottom right, ${colors[0]}, ${colors[1]})`;
+    // });
+    return tasks.map((_, index) => {
+      return colorThemes[index % colorThemes.length];
     });
   }
 
@@ -217,7 +241,7 @@ class Checklist extends CardComponent {
       !timeStr.toLowerCase().includes("minute") &&
       !timeStr.toLowerCase().includes("today") &&
       !timeStr.toLowerCase().includes("hour");
-    const backgroundStyle = `style="background-image: ${this.taskGradients[index]}"`;
+    const backgroundStyle = `style="background-image: ${this.taskGradients[index].backgroundColor}; --card-text-color: ${this.taskGradients[index].textColor}"`;
 
     return `
       <li class="task-item-container-v2 ${
